@@ -2,9 +2,9 @@
   <div>
     <table class="buttons">
       <tr v-for="row in [0,1]">
-        <td v-for="entry in [1,2,3,4,5]">
+        <td v-for="entry in [0,1,2,3,4]">
           <button @click="clicked(entry + 5*row)" :class="{helpmodeColor: helpmode}">
-            {{ (entry + 5*row == 10 ? '⇄' : entry + 5*row ) }}
+            {{ btnStr(entry + 5*row) }}
           </button>
         </td>
       </tr>
@@ -25,10 +25,24 @@ export default {
   methods: {
     clicked: function(id) {
       this.$emit('buttonclicked', { id: id });
+    },
+    btnStr: function(value) {
+      if(value == 0) return "⇄";
+
+      if(this.styleIndex == 1) {
+        if(value < 10) return value;
+        else return String.fromCharCode(value+55);
+      }
+      if(this.styleIndex == 2) return String.fromCharCode(value+64);
+      if(this.styleIndex >= 3) return this.custom[value-1];
+      return value;
     }
   },
   props: {
-    helpmode: Boolean
+    helpmode: Boolean,
+    size: Number,
+    styleIndex: Number,
+    custom: Array
   }
 }
 </script>

@@ -1,23 +1,31 @@
-<template>
+tui<template>
   <div id="app">
     <header>
       <img @click="showMenu = true" src="static/icon.png" class="icon left">
-      <img @click="location.href='/'" src="/icon.png" class="icon right">
+      <img @click="redirect" src="/icon.png" class="icon right">
       <h1>SUDOKU</h1>
     </header>
-    <span @click="isPause = true" style="cursor: pointer">⏱️ Zeit: {{ timeStr }}</span>
-    <Field @keyup.enter="solve" @cellclicked="cellClick" :sudoku="sudokuField"></Field>
-    <Buttons @buttonclicked="buttonClick" :helpmode="helpMode"></Buttons>
+
+    <Settings v-if="isSettings" @createNew="createNew"></Settings>
+    <div v-if="!isSettings">
+      <span @click="isPause = true" style="cursor: pointer">⏱️ Zeit: {{ timeStr }}</span>
+      <Field @keyup.enter="solve" @cellclicked="cellClick" :sudoku="sudokuField"
+              :xSize="xSize" :ySize="ySize" :styleIndex="style" :custom="custom"></Field>
+      <Buttons @buttonclicked="buttonClick" :helpmode="helpMode"
+                 :styleIndex="style" :custom="custom"></Buttons>
+    </div>
+
     <div v-if="showMenu" @click="showMenu = false" class="menu">
       <span @click="solve"><img src="https://image.flaticon.com/icons/svg/13/13845.svg">Lösung zeigen</span>
       <span @click="restart"><img src="https://image.flaticon.com/icons/svg/103/103253.svg">Neues Sudoku</span>
       <span @click="isPause = true"><img src="https://image.flaticon.com/icons/svg/109/109500.svg">Spiel pausieren</span>
+      <span @click="isSettings = true"><img src="https://image.flaticon.com/icons/svg/70/70367.svg">Einstellungen</span>
     </div>
     <div @click="showMenu = false" v-if="showMenu" class="fullpage"></div>
-    <div @click="isPause = false" v-if="isPause" class="shadow fullpage"></div>
-    <div v-if="isPause" class="dialog">
+    <div @click="isPause = false" v-if="isPause && !isSettings" class="shadow fullpage"></div>
+    <div v-if="isPause && !isSettings" class="dialog">
       <h2>{{ (isDone ? 'Herzlichen Glückwunsch' : 'Pause') }}</h2>
-      <div>{{ (isDone ? 'Das Sudoku wurde in ' + timeStr + ' gelöst.' : 'Das Spiel ist pausiert.') }}</div>
+      <div>{{ (isDone ? 'Sudoku in ' + timeStr + ' gelöst.' : 'Das Spiel ist pausiert.') }}</div>
       <button @click="isPause = false">{{ (isDone ? 'Schließen' : 'Fortsetzen') }}</button>
     </div>
   </div>
@@ -26,11 +34,12 @@
 <script>
 import Field from './components/Field'
 import Buttons from './components/Buttons'
+import Settings from './components/Settings'
 
 export default {
   name: 'app',
   components: {
-    Field, Buttons
+    Field, Buttons, Settings
   },
   data () {
     return {
@@ -40,25 +49,35 @@ export default {
       isPause: false,
       isDone: false,
       showMenu: false,
+      isSettings: false,
       sudokuElapsedTime: 0,
       hidden: '',
-      visibilityChange: ''
+      visibilityChange: '',
+      xSize: 3,
+      ySize: 2,
+      emptyCells: 40,
+      style: 0,
+      custom: []
     }
   },
   computed: {
     timeStr: function() {
       var m = Math.floor(this.sudokuElapsedTime/60);
       return (m ? m  + " min " : '') + this.sudokuElapsedTime % 60 + " sek";
+    },
+    size: function() {
+      return this.xSize*this.ySize;
+    },
+    cells: function() {
+      return Math.pow(this.size, 2);
     }
   },
   methods: {
     buttonClick: function(data) {
-      console.log("Button click: " + data.id);
-      if(data.id == 10) {
+      if(data.id == 0) {
         this.helpMode = !this.helpMode;
       } else {
         if(this.active != -1) {
-          console.log("Set #" + this.active + " to " + data.id);
           if(this.helpMode) {
             this.sudokuField[this.active].value = 0;
             var index = this.sudokuField[this.active].help.indexOf(data.id);
@@ -76,7 +95,6 @@ export default {
       }
     },
     cellClick: function(data) {
-      console.log("Active cell: " + data.active);
       this.active = data.active;
     },
     solve: function() {
@@ -85,7 +103,7 @@ export default {
         sudoku.push(this.sudokuField[i].value);
       }
 
-      var solver = sudoku_solver();
+      var solver = sudoku_solver(this.xSize, this.ySize);
       var solarr = solver(sudoku, 2);
       var solved = solarr[0];
       /*var solved = solve(sudoku);
@@ -96,24 +114,80 @@ export default {
 
     },
     restart: function() {
-      console.log("Generating new field...");
+      var solver = sudoku_solver(this.xSize, this.ySize);
 
-      // Generate an empty field
+      // Create an empty field
       var arr = [];
-      for(var i = 0; i < 81; i++) {
-        arr.push(0);
+      var totalTries = 0;
+
+      // Try to generate a sudoku
+      outer:
+      while(totalTries < 1000) {
+        totalTries++;
+
+        // Fill array with zeros
+        arr = [];
+        for(var i = 0; i < 81; i++) {
+          arr.push(0);
+        }
+
+        // Add (e.g. 9x9: 81/3=27) random numbers without rule conflicts
+        for(var i = 0; i < this.cells/3; i++) {
+          while(true) {
+            var pos = getRandomInt(0, this.cells);
+            var val = getRandomInt(0, this.size);
+            if(this.isPossibleCell(val, pos, arr)) {
+              //console.log("Put " + val + " in arr at pos " + pos);
+              arr[pos] = val;
+              break;
+            }
+          }
+        }
+
+        // Try to solve sudoku
+        console.log("Try to solve sudoku");
+        var solarr = solver(arr.slice(), 2);
+        console.log("=> Solutions: " + solarr.length);
+        if(solarr.length > 0) {
+          arr = solarr[0];
+          break outer;
+        }
       }
 
-      // Solve it, this will generate a random solved sudoku
-      arr = solve(arr);
-      console.log("Generated sudoku:");
+      console.log("Generated sudoku in " + totalTries + " tries.");
       console.log(arr);
 
-      // Now remove 60 values so that it is still solveable
-      removeValues(arr);
+      // Solve it, this will generate a random solved sudoku
+      //arr = solve(arr);
+
+      // Now remove values until it has only one solution
+      var counter = 0;
+      var tries = 0;
+
+      while(counter < this.emptyCells && tries < this.cells * 50) {
+        tries++;
+        var index = Math.floor(Math.random() * arr.length);
+        var val = arr[index];
+        if(val != 0) {
+          arr[index] = 0;
+
+          var solarr = solver(arr.slice(), 2)
+          //if(arraysEqual(solarr[0], solarr[1])) {
+          if(solarr.length == 1) {
+            // Exactly one solution -> proceed
+            counter++;
+          } else {
+            // Sudoku cannot be solved exactly anymore, put number back in arr and try another
+            arr[index] = val;
+          }
+        }
+      }
+
+      console.log("Removed " + counter + " in " + tries + " tries.");
+
 
       this.sudokuField = [];
-      for(var i = 0; i < 81; i++) {
+      for(var i = 0; i < this.cells; i++) {
         var val = arr[i];
         this.sudokuField.push({id: i, value: val, fixed: val != 0, help: []});
       }
@@ -122,6 +196,21 @@ export default {
       this.sudokuElapsedTime = 0;
       this.isPause = false;
       this.isDone = false;
+    },
+    isPossibleCell: function(number, cell, sudoku) {
+      var row = Math.floor(cell / this.size);
+      var col = cell % this.size;
+      var block = (Math.floor(row) / this.xSize) * this.xSize + Math.floor(col / this.ySize);
+
+    	for(var i = 0; i < this.size; i++) {
+    		if(sudoku[row*this.size + i] == number || // Check row
+            sudoku[col + this.size*i] == number || // Check col
+            sudoku[Math.floor(block/this.xSize)*this.xSize*this.size + i%this.ySize + this.size*Math.floor(i/this.ySize) + this.ySize*(block%this.ySize)] == number) { // Check block
+    			return false;
+    		}
+    	}
+
+    	return true;
     },
     checkSudoku: function() {
       var sudoku = new Array();
@@ -133,20 +222,51 @@ export default {
         this.isDone = true;
       }
     },
+    createNew: function(data) {
+      this.isSettings = false;
+      if(data) {
+        console.log(data);
+        this.style = data.style;
+        this.$localStorage.set('style', this.style);
+
+        this.emptyCells = data.emptyCells;
+        this.$localStorage.set('emptyCells', this.emptyCells);
+
+        this.custom = data.custom;
+        if(this.style == 4) this.$localStorage.set('custom', this.custom);
+
+        if(data.xSize != this.xSize) {
+          this.xSize = data.xSize;
+          this.$localStorage.set('xSize', this.xSize);
+
+          this.ySize = data.ySize;
+          this.$localStorage.set('ySize', this.ySize);
+
+          this.sudokuField = [];
+          this.restart();
+        }
+      }
+    },
     handleVisibilityChange: function() {
       if (document[this.hidden]) {
-        console.log("Handle visibility change: document hidden");
         this.isPause = true;
       } else {
-        console.log("Handle visibility change: document visible");
         //this.isPause = false;
       }
+    },
+    redirect: function() {
+      location.href='/';
     }
   },
   created: function() {
 
     this.sudokuField = this.$localStorage.get("sudoku");
-    console.log("Saved field: " + this.sudokuField);
+    this.xSize = this.$localStorage.get("xSize");
+    this.ySize = this.$localStorage.get("ySize");
+
+    this.style = this.$localStorage.get("style");
+    this.custom = this.$localStorage.get("custom");
+    this.emptyCells = this.$localStorage.get('emptyCells');
 
     if(this.sudokuField.length == 0) {
       this.restart();
@@ -173,25 +293,20 @@ export default {
       this.visibilityChange = "webkitvisibilitychange";
     }
 
-    /*function handleVisibilityChange() {
-      if (document[hidden]) {
-        console.log("Handle visibility change: document hidden");
-        this.isPause = true;
-      } else {
-        console.log("Handle visibility change: document visible");
-        //this.isPause = false;
-      }
-    }*/
-
     // Warn if the browser doesn't support addEventListener or the Page Visibility API
     if (typeof document.addEventListener === "undefined" || typeof document[this.hidden] === "undefined") {
-      console.log("This demo requires a browser, such as Google Chrome or Firefox, that supports the Page Visibility API.");
+      console.error("The auto pause requires a browser, such as Google Chrome or Firefox, that supports the Page Visibility API.");
     } else {
       // Handle page visibility change
-      console.log("Added visibility change listener");
       document.addEventListener(this.visibilityChange, this.handleVisibilityChange, false);
     }
   }
+}
+
+function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min)) + min;
 }
 
 function arraysEqual(arr1, arr2) {
@@ -204,43 +319,6 @@ function arraysEqual(arr1, arr2) {
 
     return true;
 }
-
-function removeValues(arr) {
-  var solver = sudoku_solver()
-
-  var counter = 0;
-  var tries = 0;
-  console.log("Removing numbers...");
-  while(counter < 60 && tries < 1000) {
-    tries++;
-    var index = Math.floor(Math.random() * arr.length);
-    var val = arr[index];
-    arr[index] = 0;
-    /*try {
-      solve(arr.slice()); //slice generates a duplicate so that arr stays the same
-      counter++;
-    } catch(err) {
-      // Sudoku cannot be solved anymore, put number back in arr and try another
-      console.log("Error! Put number back in array");
-      arr[index] = val;
-    }*/
-    var arr2 = arr.slice();
-    var solarr = solver(arr2, 2)
-    //if(arraysEqual(solarr[0], solarr[1])) {
-    if(solarr.length == 1) {
-      // Exactly one solution -> proceed
-      console.log("Removed " + val + " at #" + index + " | counter:" + counter);
-      counter++;
-    } else {
-      // Sudoku cannot be solved exactly anymore, put number back in arr and try another
-      console.log("Error! Put number back in array");
-      arr[index] = val;
-    }
-  }
-  console.log(arr);
-}
-
-
 
 
 // RUBBISH from here !!!

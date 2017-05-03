@@ -72,7 +72,7 @@ function sudoku_solver(xSize, ySize) {
 	var sudokuSize = xSize*ySize;
 	var cells = Math.pow(sudokuSize, 2);
 	//console.log("x=" + xSize + ", y=" + ySize + ", sudokuSize=" + sudokuSize + ", cells=" + cells);
-
+	
 	var C = [], R = []
 	{ // generate the sparse representation of the binary matrix
 		var i, j, r, c, c2
@@ -126,8 +126,8 @@ function sudoku_solver(xSize, ySize) {
 		for (c = 0; c < 4*cells; ++c) sc[c] = sudokuSize; // 9 allowed choices; no constraint has been used
 		for (var i = 0; i < cells; ++i) {
 			//var a = _s.charAt(i) >= '1' && _s.charAt(i) <= '9'? _s.charCodeAt(i) - 49 : -1; // number from -1 to 8
-			//var a = _s.charAt(i) >= 'a' && _s.charCodeAt(i) < 97+sudokuSize ? _s.charCodeAt(i) - 97 : -1; // with chars as input
-      var a = _s[i]-1;
+			var a = _s.charAt(i) >= 'a' && _s.charCodeAt(i) < 97+sudokuSize ? _s.charCodeAt(i) - 97 : -1; // with chars as input
+      //var a = _s[i]-1;
 			if (a >= 0) sd_update(sr, sc, i * sudokuSize + a, 1); // set the choice
 			if (a >= 0) ++hints; // count the number of hints
 			cr[i] = cc[i] = -1, out[i] = a + 1;

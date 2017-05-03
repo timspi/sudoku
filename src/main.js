@@ -21,6 +21,26 @@ new Vue({
     sudokuElapsedTime: {
       type: Number,
       default: 0
+    },
+    xSize: {
+      type: Number,
+      default: 3
+    },
+    ySize: {
+      type: Number,
+      default: 3
+    },
+    style: {
+      type: Number,
+      default: 0
+    },
+    custom: {
+      type: Array,
+      default: ["😇","🐨","🍎","😍","🦊","🥝","🎈","🐏","😎","💣","🔪","🗡"]
+    },
+    emptyCells: {
+      type: Number,
+      default: 40
     }
   }
 })

@@ -10,7 +10,7 @@
         <td v-for="entry in row"
             :class="getClass(entry)"
             @click="clicked(entry.id)">
-          <Help v-if="entry.value == 0" :help="entry.help"></Help>
+          <Help v-if="entry.value == 0" :help="entry.help" :styleIndex="styleIndex"></Help>
           {{ getVal(entry.value) }}
         </td>
       </tr>
@@ -33,28 +33,40 @@ export default {
     }
   },
   props: {
-    sudoku: Array
+    sudoku: Array,
+    xSize: Number,
+    ySize: Number,
+    styleIndex: Number,
+    custom: Array
   },
   computed: {
     size: function() {
-      return Math.sqrt(this.sudoku.length);
+      return this.xSize*this.ySize;
     },
     sudokuRows: function() {
       var arr = [];
-      for(var i = 0; i < 81; i += 9) {
-        arr.push(this.sudoku.slice(i, i+9));
+      for(var i = 0; i < this.sudoku.length; i += this.size) {
+        arr.push(this.sudoku.slice(i, i + this.size));
       }
       return arr;
     }
   },
   methods: {
     getVal: function(value) {
-      return (value == 0 ? "" : value);
+      if(value == 0) return "";
+      if(this.styleIndex == 1) {
+        if(value < 10) return value;
+        else return String.fromCharCode(value+55);
+      }
+
+      if(this.styleIndex == 2) return String.fromCharCode(value+64);
+      if(this.styleIndex >= 3) return this.custom[value-1];
+      return value;
     },
     getClass: function(entry) {
       var classes = "cell";
-      if(entry.id % 3 == 0) classes += " thick-border-left";
-      if(Math.floor(entry.id / 9) % 3 == 0) classes += " thick-border-top";
+      if(entry.id % this.xSize == 0) classes += " thick-border-left";
+      if(Math.floor(entry.id / this.size) % this.ySize == 0) classes += " thick-border-top";
 
       if(entry.fixed) classes += " fixed";
       else if(entry.id == this.active) classes += " active";
@@ -65,7 +77,6 @@ export default {
       if(!this.sudoku[id].fixed) {
         if(this.active == id) this.active = -1;
         else this.active = id;
-        console.log("Emit" + id);
         this.$emit('cellclicked', { active: this.active });
       }
     }

@@ -3,7 +3,7 @@
     <table>
       <tr v-for="row in rows">
         <td v-for="col in row" :class="{opaque: !col}">
-          {{ col }}
+          {{ getVal(col) }}
         </td>
       </tr>
     </table>
@@ -19,12 +19,25 @@ export default {
     }
   },
   props: {
-    help: Array
+    help: Array,
+    styleIndex: Number
+  },
+  methods: {
+    getVal: function(value) {
+      if(value == 0) return 0;
+      if(this.styleIndex == 1) {
+        if(value < 10) return value;
+        else return String.fromCharCode(value+55);
+      }
+
+      if(this.styleIndex == 2) return String.fromCharCode(value+64);
+      if(this.styleIndex >= 3) return this.custom[value-1];
+      return value;
+    }
   },
   computed: {
     rows: function() {
       var arr = [[0,0,0],[0,0,0],[0,0,0]]
-      console.log("Help: " + this.help);
       for(var i = 0; i < this.help.length; i++) {
         var pos = this.help[i]-1;
         arr[Math.floor(pos/3)][pos%3] = this.help[i];
