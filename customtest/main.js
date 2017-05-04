@@ -1,18 +1,22 @@
+var xSize = 5, ySize = 4;
+
+
 function go() {
-	console.log("Start");
-	var solstr, solarr = solver(document.getElementById("input").value, 2)
+	console.time("Start");
+	var solstr, solarr = solver(document.getElementById("input").value.split(","), 2)
 	for (var i = 0; i < solarr.length; i++) {
 		solstr += solarr[i].join('') + '\n'
 	}
+	console.timeEnd("Start");
 	console.log(solarr);
 	document.getElementById("output").textContent = solstr;
 	
-	console.log("First:");
+	/*console.log("First:");
 	for(var i = 0; i < solarr[0].length; i++) {
 		var val = solarr[0][i];
 		if(val < 10) console.log(val);
 		else console.log(String.fromCharCode(87+val));
-	}
+	}*/
 }
 
 //var sudoku9 = "1.......2.9.4...5...6...7...5.9.3.......7.......85..4.7.....6...3...9.8...2.....1";
@@ -21,11 +25,28 @@ function go() {
 var sudoku9 = "a.......b.i.d...e...f...g...e.i.c.......g.......he..d.g.....f...c...i.h...b.....a";
 var sudoku12 = "..f..e.......d........b.e...dl..h..jbh.di....e....ji..l.........k.....j..k.ef....li..lg.hj.....k...b......gfi.....h...k..bk.lf....agl..a.gd..i.h";
 var sudoku16 = "..a....c.....o.i.j..a.b.p.cgf.h...d..f.i.e....p..g.el.h....m.j......e....c..g....i..k.ga.b...e.jd.gp..j.f....a...e...c.b..dp..o.e..f.m..d..l.k.a.c........o.i.l.h.p.c..f.a..b......g.od...j....hk...j....h.a.p.l..b..p..e..k..a..h..b..k..fi.c....f...c..d..h.n.";
+var sudoku2x5x4 = "0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,17,0,0,0,0,0,0,0,0,0,0,0,0,12,0,0,0,0,14,0,0,0,0,0,0,0,18,0,0,0,0,0,0,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,7,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,17,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,18,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,18,0,0,0,0,0,0,11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,18,0,0,0,0,0,12,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0|0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,19,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,14,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,0,7,0,0,0,0,1,0,9,0,0,0,8,0,0,11,0,0,0,0,0,0,0,0,0,0,4,0,0,0,15,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,18,0,0,0,0,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,14,0,0,0,0,0,12,13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
+
+document.getElementById("input").value = sudoku2x5x4;
+
+var solver = sudoku_solver(xSize, ySize); // xSize, ySize
+//go();
 
 
-document.getElementById("input").value = sudoku12;
 
-var solver = sudoku_solver(4, 3); // xSize, ySize
-go();
-
-
+function display() {
+	//var solarr = solver(document.getElementById("input").value.split(","), 2);
+	var sudokus = document.getElementById("input").value.split("|");
+	var out = "";
+	for(var j = 0; j < sudokus.length; j++) {
+		var arr = sudokus[j].split(","); //solarr[0];
+		console.log(arr);
+		out += "<div class='align'><table>";
+		for(var i = 0; i < arr.length; i++) {
+			if(i % (xSize*ySize) == 0) out += "</tr><tr>";
+			out += "<td>" + (arr[i] != 0 ? arr[i] : "") + "</td>";
+		}
+		out += "</table></div>";
+	}
+	document.getElementById("output").innerHTML = out;
+}

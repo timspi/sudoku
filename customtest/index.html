@@ -1,11 +1,35 @@
 <!DOCTYPE html>
 <html>
 	<head>
-	
+	<style>
+		.align {
+			display: inline-block;
+			float: left;
+			margin: 10px;
+		}
+		table {
+			border: 3px solid black;
+		}
+		table, td, tr {
+			border-collapse: collapse;
+			text-align: center;
+		}
+		td {
+			border: 1px solid black;
+			width: 20px;
+			height: 20px;
+		}
+		td:nth-child(5n+0) {
+			border-right: 3px solid black;
+		}
+		tr:nth-child(4n+0) {
+			border-bottom: 3px solid black;
+		}
+	</style>
 	</head>
 	<body>
 		<input id="input" type="text"></input>
-		<button onclick="go()">Los</button>
+		<button onclick="display()">Los</button>
 		<div id="output"></div>
 	</body>
 	<script language="javascript" src="kudoku.js"></script>

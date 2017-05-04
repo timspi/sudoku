@@ -3,7 +3,7 @@
     <table>
       <tr v-for="row in rows">
         <td v-for="col in row" :class="{opaque: !col}">
-          {{ getVal(col) }}
+          {{ col }}
         </td>
       </tr>
     </table>
@@ -21,19 +21,6 @@ export default {
   props: {
     help: Array,
     styleIndex: Number
-  },
-  methods: {
-    getVal: function(value) {
-      if(value == 0) return 0;
-      if(this.styleIndex == 1) {
-        if(value < 10) return value;
-        else return String.fromCharCode(value+55);
-      }
-
-      if(this.styleIndex == 2) return String.fromCharCode(value+64);
-      if(this.styleIndex >= 3) return this.custom[value-1];
-      return value;
-    }
   },
   computed: {
     rows: function() {

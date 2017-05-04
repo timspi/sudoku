@@ -31,5 +31,14 @@ rm(path.join(config.build.assetsRoot, config.build.assetsSubDirectory), err => {
       '  Tip: built files are meant to be served over an HTTP server.\n' +
       '  Opening index.html over file:// won\'t work.\n'
     ))
+    var exec = require('child_process').exec;
+    var cmd = 'zip -r ' + config.build.assetsRoot + '/dist.zip ' + config.build.assetsRoot;
+
+    exec(cmd, function(error, stdout, stderr) {
+      // command output is in stdout
+    });
+  })
+  rm(path.join(config.build.assetsRoot, "dist.zip"), err => {
+    if (err) throw err
   })
 })

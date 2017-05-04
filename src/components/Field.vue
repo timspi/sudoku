@@ -1,16 +1,11 @@
 <template>
   <div>
     <table class="sudoku">
-      <!--<tr>
-        <th>Firstname</th>
-        <th>Lastname</th>
-        <th>Age</th>
-      </tr>-->
       <tr v-for="row in sudokuRows">
         <td v-for="entry in row"
             :class="getClass(entry)"
             @click="clicked(entry.id)">
-          <Help v-if="entry.value == 0" :help="entry.help" :styleIndex="styleIndex"></Help>
+          <Help v-if="entry.value == 0" :help="entry.help"></Help>
           {{ getVal(entry.value) }}
         </td>
       </tr>
@@ -33,20 +28,17 @@ export default {
     }
   },
   props: {
-    sudoku: Array,
-    xSize: Number,
-    ySize: Number,
-    styleIndex: Number,
-    custom: Array
+    sudoku: Object,
+    settings: Object
   },
   computed: {
     size: function() {
-      return this.xSize*this.ySize;
+      return this.sudoku.xSize*this.sudoku.ySize;
     },
     sudokuRows: function() {
       var arr = [];
-      for(var i = 0; i < this.sudoku.length; i += this.size) {
-        arr.push(this.sudoku.slice(i, i + this.size));
+      for(var i = 0; i < this.sudoku.field.length; i += this.size) {
+        arr.push(this.sudoku.field.slice(i, i + this.size));
       }
       return arr;
     }
@@ -54,19 +46,19 @@ export default {
   methods: {
     getVal: function(value) {
       if(value == 0) return "";
-      if(this.styleIndex == 1) {
+      if(this.settings.styleIndex == 1) {
         if(value < 10) return value;
         else return String.fromCharCode(value+55);
       }
 
-      if(this.styleIndex == 2) return String.fromCharCode(value+64);
-      if(this.styleIndex >= 3) return this.custom[value-1];
+      if(this.settings.styleIndex == 2) return String.fromCharCode(value+64);
+      if(this.settings.styleIndex >= 3) return this.custom[value-1];
       return value;
     },
     getClass: function(entry) {
       var classes = "cell";
-      if(entry.id % this.xSize == 0) classes += " thick-border-left";
-      if(Math.floor(entry.id / this.size) % this.ySize == 0) classes += " thick-border-top";
+      if(entry.id % this.sudoku.xSize == 0) classes += " thick-border-left";
+      if(Math.floor(entry.id / this.size) % this.sudoku.ySize == 0) classes += " thick-border-top";
 
       if(entry.fixed) classes += " fixed";
       else if(entry.id == this.active) classes += " active";
@@ -74,7 +66,7 @@ export default {
       return classes;
     },
     clicked: function(id) {
-      if(!this.sudoku[id].fixed) {
+      if(!this.sudoku.field[id].fixed) {
         if(this.active == id) this.active = -1;
         else this.active = id;
         this.$emit('cellclicked', { active: this.active });

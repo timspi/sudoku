@@ -15,32 +15,12 @@ new Vue({
   components: { App },
   localStorage: {
     sudoku: {
-      type: Array,
-      default: []
+      type: Object,
+      default: {xSize: 3, ySize: 3, field: [], elapsedTime: 0, active: -1}
     },
-    sudokuElapsedTime: {
-      type: Number,
-      default: 0
-    },
-    xSize: {
-      type: Number,
-      default: 3
-    },
-    ySize: {
-      type: Number,
-      default: 3
-    },
-    style: {
-      type: Number,
-      default: 0
-    },
-    custom: {
-      type: Array,
-      default: ["😇","🐨","🍎","😍","🦊","🥝","🎈","🐏","😎","💣","🔪","🗡"]
-    },
-    emptyCells: {
-      type: Number,
-      default: 40
+    settings: {
+      type: Object,
+      default: {style: 0, custom: ["😇","🐨","🍎","😍","🦊","🥝","🎈","🐏","😎","💣","🔪","🗡"], emptyCells: 40}
     }
   }
 })

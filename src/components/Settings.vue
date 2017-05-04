@@ -44,13 +44,14 @@ export default {
       ySize: 3,
       difficulty: 3,
       style: 0,
-      custom: "💣,🔪,🗡,⚔️,🔫,💉,⚰️,⛓,🛡",
+      custom: "",
       emoji: "😀,😁,😂,😃,😄,😅,😆,😇,😈,😉,😊,😋,😌,😍,😎,😏,😐,😑,😒,😓,😔,😕,😖,😗,😘,😙,😚,😛,😜,😝,😞,😟,😠,😡,😢,😣,😤,😥,😦,😧,😨,😩,😪,😫,😬,😭,😮,😯,😰,😱,😲,😳,😴,😵,😶,😷,😸,😹,😺,😻,😼,😽,😾,😿,🙀,🙁,🙂,🙃,🙄,🙅,🙆,🙇,🙈,🙉,🙊,🙋,🙌,🙍,🙎,🙏"
     }
   },
   methods: {
     createNew: function(id) {
       this.$emit('createNew', {
+        save: true,
         xSize: this.xSize,
         ySize: this.ySize,
         emptyCells: this.emptyCells,
@@ -110,6 +111,16 @@ export default {
     customArr: function() {
       return this.custom.split(",");
     }
+  },
+  created: function() {
+    var sudoku = this.$localStorage.get("sudoku");
+    var settings = this.$localStorage.get("settings");
+
+    this.xSize = sudoku.xSize;
+    this.ySize = sudoku.ySize;
+
+    this.style = settings.style;
+    this.custom = settings.custom;
   }
 }
 </script>

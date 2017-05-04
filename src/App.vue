@@ -1,27 +1,32 @@
 tui<template>
   <div id="app">
+    <!-- HEADER -->
     <header>
       <img @click="showMenu = true" src="static/icon.png" class="icon left">
       <img @click="redirect" src="/icon.png" class="icon right">
       <h1>SUDOKU</h1>
     </header>
 
+    <!-- SETTINGS COMPONENT -->
     <Settings v-if="isSettings" @createNew="createNew"></Settings>
+
+    <!-- SUDOKU COMPONENTS -->
     <div v-if="!isSettings">
       <span @click="isPause = true" style="cursor: pointer">⏱️ Zeit: {{ timeStr }}</span>
-      <Field @keyup.enter="solve" @cellclicked="cellClick" :sudoku="sudokuField"
-              :xSize="xSize" :ySize="ySize" :styleIndex="style" :custom="custom"></Field>
-      <Buttons @buttonclicked="buttonClick" :helpmode="helpMode"
-                 :styleIndex="style" :custom="custom"></Buttons>
+      <Field @keyup.enter="solve" @cellclicked="cellClick" :sudoku="sudoku" :settings="settings"></Field>
+      <Buttons @buttonclicked="buttonClick" :helpmode="helpMode"></Buttons>
     </div>
 
-    <div v-if="showMenu" @click="showMenu = false" class="menu">
+    <!-- MAIN MENU -->
+    <div v-if="showMenu" @click="/*showMenu = false*/" class="menu">
       <span @click="solve"><img src="https://image.flaticon.com/icons/svg/13/13845.svg">Lösung zeigen</span>
       <span @click="restart"><img src="https://image.flaticon.com/icons/svg/103/103253.svg">Neues Sudoku</span>
       <span @click="isPause = true"><img src="https://image.flaticon.com/icons/svg/109/109500.svg">Spiel pausieren</span>
       <span @click="isSettings = true"><img src="https://image.flaticon.com/icons/svg/70/70367.svg">Einstellungen</span>
     </div>
     <div @click="showMenu = false" v-if="showMenu" class="fullpage"></div>
+
+    <!-- INFO DIALOG -->
     <div @click="isPause = false" v-if="isPause && !isSettings" class="shadow fullpage"></div>
     <div v-if="isPause && !isSettings" class="dialog">
       <h2>{{ (isDone ? 'Herzlichen Glückwunsch' : 'Pause') }}</h2>
@@ -43,30 +48,26 @@ export default {
   },
   data () {
     return {
-      sudokuField: [],
-      active: -1,
+      sudoku: {},
+      settings: {},
+
       helpMode: false,
       isPause: false,
       isDone: false,
       showMenu: false,
       isSettings: false,
-      sudokuElapsedTime: 0,
+
       hidden: '',
-      visibilityChange: '',
-      xSize: 3,
-      ySize: 2,
-      emptyCells: 40,
-      style: 0,
-      custom: []
+      visibilityChange: ''
     }
   },
   computed: {
     timeStr: function() {
-      var m = Math.floor(this.sudokuElapsedTime/60);
-      return (m ? m  + " min " : '') + this.sudokuElapsedTime % 60 + " sek";
+      var m = Math.floor(this.sudoku.elapsedTime/60);
+      return (m ? m  + " min " : '') + this.sudoku.elapsedTime % 60 + " sek";
     },
     size: function() {
-      return this.xSize*this.ySize;
+      return this.sudoku.xSize*this.sudoku.ySize;
     },
     cells: function() {
       return Math.pow(this.size, 2);
@@ -77,30 +78,30 @@ export default {
       if(data.id == 0) {
         this.helpMode = !this.helpMode;
       } else {
-        if(this.active != -1) {
+        if(this.sudoku.active != -1) {
           if(this.helpMode) {
-            this.sudokuField[this.active].value = 0;
-            var index = this.sudokuField[this.active].help.indexOf(data.id);
+            this.sudoku.field[this.sudoku.active].value = 0;
+            var index = this.sudoku.field[this.sudoku.active].help.indexOf(data.id);
             if(index == -1) {
-              this.sudokuField[this.active].help.push(data.id);
+              this.sudoku.field[this.sudoku.active].help.push(data.id);
             } else {
-              this.sudokuField[this.active].help.splice(index, 1);
+              this.sudoku.field[this.sudoku.active].help.splice(index, 1);
             }
           } else {
-            this.sudokuField[this.active].value = data.id;
+            this.sudoku.field[this.sudoku.active].value = data.id;
             this.checkSudoku();
           }
         }
-        this.$localStorage.set('sudoku', this.sudokuField);
+        //this.$localStorage.set('sudoku', this.sudoku.field);
       }
     },
     cellClick: function(data) {
-      this.active = data.active;
+      this.sudoku.active = data.active;
     },
     solve: function() {
       var sudoku = new Array();
-      for(var i = 0; i < this.sudokuField.length; i++) {
-        sudoku.push(this.sudokuField[i].value);
+      for(var i = 0; i < this.sudoku.field.length; i++) {
+        sudoku.push(this.sudoku.field[i].value);
       }
 
       var solver = sudoku_solver(this.xSize, this.ySize);
@@ -109,17 +110,20 @@ export default {
       /*var solved = solve(sudoku);
       console.log(solved);*/
       for(var i = 0; i < solved.length; i++) {
-        this.sudokuField[i].value = solved[i];
+        this.sudoku.field[i].value = solved[i];
       }
 
     },
     restart: function() {
-      var solver = sudoku_solver(this.xSize, this.ySize);
+      console.log("###### NEW SUDOKU ######");
+      console.log("Initialize solver at " + this.sudoku.xSize + "x" + this.sudoku.ySize);
+      var solver = sudoku_solver(this.sudoku.xSize, this.sudoku.ySize);
 
       // Create an empty field
       var arr = [];
       var totalTries = 0;
 
+      console.time("Generating sudoku...");
       // Try to generate a sudoku
       outer:
       while(totalTries < 1000) {
@@ -127,13 +131,14 @@ export default {
 
         // Fill array with zeros
         arr = [];
-        for(var i = 0; i < 81; i++) {
+        for(var i = 0; i < this.cells; i++) {
           arr.push(0);
         }
 
         // Add (e.g. 9x9: 81/3=27) random numbers without rule conflicts
-        for(var i = 0; i < this.cells/3; i++) {
-          while(true) {
+        for(var i = 0; i < Math.min(25, this.cells/3); i++) {
+        //for(var i = 0; i < 30; i++) {
+          for(var triesCounter = 0; triesCounter < 500; triesCounter++) {
             var pos = getRandomInt(0, this.cells);
             var val = getRandomInt(0, this.size);
             if(this.isPossibleCell(val, pos, arr)) {
@@ -145,16 +150,18 @@ export default {
         }
 
         // Try to solve sudoku
-        console.log("Try to solve sudoku");
+        console.log("Try to solve sudoku:");
+        console.log(arr.join(","));
         var solarr = solver(arr.slice(), 2);
-        console.log("=> Solutions: " + solarr.length);
+        //console.log("=> Solutions: " + solarr.length);
         if(solarr.length > 0) {
           arr = solarr[0];
           break outer;
         }
       }
 
-      console.log("Generated sudoku in " + totalTries + " tries.");
+      console.log("Generated sudoku in " + totalTries + " tries:");
+      console.timeEnd("Generating sudoku...");
       console.log(arr);
 
       // Solve it, this will generate a random solved sudoku
@@ -163,8 +170,8 @@ export default {
       // Now remove values until it has only one solution
       var counter = 0;
       var tries = 0;
-
-      while(counter < this.emptyCells && tries < this.cells * 50) {
+      console.log("Now removing numbers...");
+      while(counter < this.settings.emptyCells && tries < this.cells * 50) {
         tries++;
         var index = Math.floor(Math.random() * arr.length);
         var val = arr[index];
@@ -183,29 +190,33 @@ export default {
         }
       }
 
-      console.log("Removed " + counter + " in " + tries + " tries.");
+      console.log("Removed " + counter + " numbers in " + tries + " tries.");
+      console.log("Finished sudoku:");
+      console.log(arr);
+      console.log("###### END SUDOKU ######");
 
-
-      this.sudokuField = [];
+      this.sudoku.field = [];
       for(var i = 0; i < this.cells; i++) {
         var val = arr[i];
-        this.sudokuField.push({id: i, value: val, fixed: val != 0, help: []});
+        this.sudoku.field.push({id: i, value: val, fixed: val != 0, help: []});
       }
-      this.sudokuField = this.$localStorage.set("sudoku", this.sudokuField);
-      this.$localStorage.set("sudokuElapsedTime", 0);
-      this.sudokuElapsedTime = 0;
+      /*this.sudoku.field = this.$localStorage.set("sudoku", this.sudoku.field);
+      this.$localStorage.set("sudokuElapsedTime", 0);*/
+      this.sudoku.elapsedTime = 0;
       this.isPause = false;
       this.isDone = false;
     },
     isPossibleCell: function(number, cell, sudoku) {
       var row = Math.floor(cell / this.size);
       var col = cell % this.size;
-      var block = (Math.floor(row) / this.xSize) * this.xSize + Math.floor(col / this.ySize);
+      //var block = (Math.floor(row) / this.sudoku.xSize) * this.sudoku.xSize + Math.floor(col / this.sudoku.ySize);
+      var block = Math.floor(cell/(this.size*this.sudoku.ySize))*this.sudoku.ySize + Math.floor(col / this.sudoku.xSize);
+      //console.log("Cell: " + cell + ", row: " + row + ", col: " + col + ", block: " + block);
 
     	for(var i = 0; i < this.size; i++) {
     		if(sudoku[row*this.size + i] == number || // Check row
             sudoku[col + this.size*i] == number || // Check col
-            sudoku[Math.floor(block/this.xSize)*this.xSize*this.size + i%this.ySize + this.size*Math.floor(i/this.ySize) + this.ySize*(block%this.ySize)] == number) { // Check block
+            sudoku[Math.floor(block/this.sudoku.xSize)*this.sudoku.xSize*this.size + i%this.sudoku.ySize + this.size*Math.floor(i/this.sudoku.ySize) + this.sudoku.ySize*(block%this.sudoku.ySize)] == number) { // Check block
     			return false;
     		}
     	}
@@ -214,8 +225,8 @@ export default {
     },
     checkSudoku: function() {
       var sudoku = new Array();
-      for(var i = 0; i < this.sudokuField.length; i++) {
-        sudoku.push(this.sudokuField[i].value);
+      for(var i = 0; i < this.sudoku.field.length; i++) {
+        sudoku.push(this.sudoku.field[i].value);
       }
       if(isSolvedSudoku(sudoku)) {
         this.isPause = true;
@@ -224,25 +235,19 @@ export default {
     },
     createNew: function(data) {
       this.isSettings = false;
-      if(data) {
+      if(data.save) {
         console.log(data);
-        this.style = data.style;
-        this.$localStorage.set('style', this.style);
+        this.settings.style = data.style;
+        this.settings.emptyCells = data.emptyCells;
+        this.settings.custom = data.custom;
+        //if(this.style == 4) this.$localStorage.set('custom', this.custom);
 
-        this.emptyCells = data.emptyCells;
-        this.$localStorage.set('emptyCells', this.emptyCells);
+        if(data.xSize != this.sudoku.xSize || data.ySize != this.sudoku.ySize) {
+          this.sudoku.xSize = data.xSize;
+          this.sudoku.ySize = data.ySize;
 
-        this.custom = data.custom;
-        if(this.style == 4) this.$localStorage.set('custom', this.custom);
-
-        if(data.xSize != this.xSize) {
-          this.xSize = data.xSize;
-          this.$localStorage.set('xSize', this.xSize);
-
-          this.ySize = data.ySize;
-          this.$localStorage.set('ySize', this.ySize);
-
-          this.sudokuField = [];
+          console.log("Changed settings -> create new sudoku");
+          this.sudoku.field = [];
           this.restart();
         }
       }
@@ -255,29 +260,29 @@ export default {
       }
     },
     redirect: function() {
-      location.href='/';
+      //location.href='/';
+      var arr = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,0,0,6,0,0,0,0,0,13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,14,0,0,0,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,14,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,13,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,0,0,0,0,11,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,0,0,0,0,7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,14,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,19,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,17,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,14,0,0,0,0,0,16,0,0,0,0,0,0];
+      this.sudoku.field = [];
+      for(var i = 0; i < this.cells; i++) {
+        var val = arr[i];
+        this.sudoku.field.push({id: i, value: val, fixed: val != 0, help: []});
+      }
     }
   },
   created: function() {
 
-    this.sudokuField = this.$localStorage.get("sudoku");
-    this.xSize = this.$localStorage.get("xSize");
-    this.ySize = this.$localStorage.get("ySize");
+    this.sudoku = this.$localStorage.get("sudoku");
+    this.settings = this.$localStorage.get("settings");
 
-    this.style = this.$localStorage.get("style");
-    this.custom = this.$localStorage.get("custom");
-    this.emptyCells = this.$localStorage.get('emptyCells');
-
-    if(this.sudokuField.length == 0) {
+    if(this.sudoku.field.length == 0) {
       this.restart();
     } else {
       this.checkSudoku();
     }
-    this.sudokuElapsedTime = this.$localStorage.get("sudokuElapsedTime");
+
     window.setInterval(() => {
       if(!(this.isPause || this.isDone)) {
-        this.sudokuElapsedTime += 1; //Math.trunc((new Date()).getTime() / 1000);
-        this.$localStorage.set("sudokuElapsedTime", this.sudokuElapsedTime);
+        this.sudoku.elapsedTime += 1; //Math.trunc((new Date()).getTime() / 1000);
       }
     },1000);
 
@@ -299,6 +304,21 @@ export default {
     } else {
       // Handle page visibility change
       document.addEventListener(this.visibilityChange, this.handleVisibilityChange, false);
+    }
+  },
+  watch: {
+    sudoku: {
+      handler: function(val) {
+        this.$localStorage.set("sudoku", val);
+      },
+      deep: true
+    },
+    settings: {
+      handler: function(val) {
+        console.log("Saved settings");
+        this.$localStorage.set("settings", val);
+      },
+      deep: true
     }
   }
 }
