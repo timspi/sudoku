@@ -117,7 +117,32 @@ export default {
     restart: function() {
       console.log("###### NEW SUDOKU ######");
       console.log("Initialize solver at " + this.sudoku.xSize + "x" + this.sudoku.ySize);
-      var solver = sudoku_solver(this.sudoku.xSize, this.sudoku.ySize);
+      //FIXME var solver = sudoku_solver(this.sudoku.xSize, this.sudoku.ySize);
+      var solver = (arr) => {
+        var grid = [];
+        for(var i = 0; i < this.size; i++) {
+          var a = [];
+          for(var j = 0; j < this.size; j++) {
+            a.push(arr[this.size*i+j]);
+          }
+          grid.push(a);
+        }
+        //console.log("Grid pre:");
+        //console.log(grid);
+        var solutions = solve_sudoku(grid, this.sudoku.xSize, this.sudoku.ySize);
+        //console.log("Solutions:" + solutions)
+        //console.log("Grid post:");
+        //console.log(grid);
+        var ret = []
+        for(var sol = 0; sol < solutions; sol++) {
+          var out = [];
+          for(var i = 0; i < grid.length; i++) {
+            out = out.concat(grid[i]);
+          }
+          ret.push(out);
+        }
+        return ret;
+      }
 
       // Create an empty field
       var arr = [];
@@ -153,7 +178,7 @@ export default {
         console.log("Try to solve sudoku:");
         console.log(arr.join(","));
         var solarr = solver(arr.slice(), 2);
-        //console.log("=> Solutions: " + solarr.length);
+        console.log("=> Solutions: " + solarr.length);
         if(solarr.length > 0) {
           arr = solarr[0];
           break outer;
@@ -224,14 +249,14 @@ export default {
     	return true;
     },
     checkSudoku: function() {
-      var sudoku = new Array();
+      /*var sudoku = new Array();
       for(var i = 0; i < this.sudoku.field.length; i++) {
         sudoku.push(this.sudoku.field[i].value);
       }
       if(isSolvedSudoku(sudoku)) {
         this.isPause = true;
         this.isDone = true;
-      }
+      }*/
     },
     createNew: function(data) {
       this.isSettings = false;
