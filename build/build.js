@@ -35,7 +35,9 @@ rm(path.join(config.build.assetsRoot, config.build.assetsSubDirectory), err => {
     var cmd = 'zip -r ' + config.build.assetsRoot + '/dist.zip ' + config.build.assetsRoot;
 
     exec(cmd, function(error, stdout, stderr) {
-      // command output is in stdout
+      console.log(chalk.cyan(
+        '  Created dist.zip:\n' + stdout
+      ))
     });
   })
   rm(path.join(config.build.assetsRoot, "dist.zip"), err => {

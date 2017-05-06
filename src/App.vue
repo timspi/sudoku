@@ -18,7 +18,7 @@ tui<template>
     </div>
 
     <!-- MAIN MENU -->
-    <div v-if="showMenu" @click="/*showMenu = false*/" class="menu">
+    <div v-if="showMenu" @click="showMenu = false" class="menu">
       <span @click="solve"><img src="https://image.flaticon.com/icons/svg/13/13845.svg">Lösung zeigen</span>
       <span @click="restart"><img src="https://image.flaticon.com/icons/svg/103/103253.svg">Neues Sudoku</span>
       <span @click="isPause = true"><img src="https://image.flaticon.com/icons/svg/109/109500.svg">Spiel pausieren</span>
@@ -32,6 +32,14 @@ tui<template>
       <h2>{{ (isDone ? 'Herzlichen Glückwunsch' : 'Pause') }}</h2>
       <div>{{ (isDone ? 'Sudoku in ' + timeStr + ' gelöst.' : 'Das Spiel ist pausiert.') }}</div>
       <button @click="isPause = false">{{ (isDone ? 'Schließen' : 'Fortsetzen') }}</button>
+    </div>
+
+    <!-- LOADING DIALOG -->
+    <div v-if="isLoading" class="shadow fullpage"></div>
+    <div v-if="isLoading" class="dialog">
+      <h2>Bitte Warten</h2>
+      <img src="static/loading.gif">
+      <span>Sudoku wird generiert</span>
     </div>
   </div>
 </template>
@@ -56,6 +64,7 @@ export default {
       isDone: false,
       showMenu: false,
       isSettings: false,
+      isLoading: false,
 
       hidden: '',
       visibilityChange: ''
@@ -115,96 +124,101 @@ export default {
 
     },
     restart: function() {
-      console.log("###### NEW SUDOKU ######");
-      console.log("Initialize solver at " + this.sudoku.xSize + "x" + this.sudoku.ySize);
-      var solver = sudoku_solver(this.sudoku.xSize, this.sudoku.ySize);
+      this.isLoading = true;
+      // Wait 20ms to let the browser display the loading screen
+      setTimeout(() => {
+        console.log("###### NEW SUDOKU ######");
+        console.log("Initialize solver at " + this.sudoku.xSize + "x" + this.sudoku.ySize);
+        var solver = sudoku_solver(this.sudoku.xSize, this.sudoku.ySize);
 
-      // Create an empty field
-      var arr = [];
-      var totalTries = 0;
+        // Create an empty field
+        var arr = [];
+        var totalTries = 0;
 
-      console.time("Generating sudoku...");
-      // Try to generate a sudoku
-      outer:
-      while(totalTries < 1000) {
-        totalTries++;
+        console.time("Generating sudoku...");
+        // Try to generate a sudoku
+        outer:
+        while(totalTries < 1000) {
+          totalTries++;
 
-        // Fill array with zeros
-        arr = [];
-        for(var i = 0; i < this.cells; i++) {
-          arr.push(0);
+          // Fill array with zeros
+          arr = [];
+          for(var i = 0; i < this.cells; i++) {
+            arr.push(0);
+          }
+
+          // Add (e.g. 9x9: 81/3=27) random numbers without rule conflicts
+          for(var i = 0; i < Math.min(25, this.cells/3); i++) {
+          //for(var i = 0; i < 30; i++) {
+            for(var triesCounter = 0; triesCounter < 500; triesCounter++) {
+              var pos = getRandomInt(0, this.cells);
+              var val = getRandomInt(0, this.size);
+              if(this.isPossibleCell(val, pos, arr)) {
+                //console.log("Put " + val + " in arr at pos " + pos);
+                arr[pos] = val;
+                break;
+              }
+            }
+          }
+
+          // Try to solve sudoku
+          console.log("Try to solve sudoku:");
+          console.log(arr.join(","));
+          var solarr = solver(arr.slice(), 2);
+          //console.log("=> Solutions: " + solarr.length);
+          if(solarr.length > 0) {
+            arr = solarr[0];
+            break outer;
+          }
         }
 
-        // Add (e.g. 9x9: 81/3=27) random numbers without rule conflicts
-        for(var i = 0; i < Math.min(25, this.cells/3); i++) {
-        //for(var i = 0; i < 30; i++) {
-          for(var triesCounter = 0; triesCounter < 500; triesCounter++) {
-            var pos = getRandomInt(0, this.cells);
-            var val = getRandomInt(0, this.size);
-            if(this.isPossibleCell(val, pos, arr)) {
-              //console.log("Put " + val + " in arr at pos " + pos);
-              arr[pos] = val;
-              break;
+        console.log("Generated sudoku in " + totalTries + " tries:");
+        console.timeEnd("Generating sudoku...");
+        console.log(arr);
+
+        // Solve it, this will generate a random solved sudoku
+        //arr = solve(arr);
+
+        // Now remove values until it has only one solution
+        var counter = 0;
+        var tries = 0;
+        console.log("Now removing numbers...");
+        while(counter < this.settings.emptyCells && tries < this.cells * 50) {
+          tries++;
+          var index = Math.floor(Math.random() * arr.length);
+          var val = arr[index];
+          if(val != 0) {
+            arr[index] = 0;
+
+            var solarr = solver(arr.slice(), 2)
+            //if(arraysEqual(solarr[0], solarr[1])) {
+            if(solarr.length == 1) {
+              // Exactly one solution -> proceed
+              counter++;
+            } else {
+              // Sudoku cannot be solved exactly anymore, put number back in arr and try another
+              arr[index] = val;
             }
           }
         }
 
-        // Try to solve sudoku
-        console.log("Try to solve sudoku:");
-        console.log(arr.join(","));
-        var solarr = solver(arr.slice(), 2);
-        //console.log("=> Solutions: " + solarr.length);
-        if(solarr.length > 0) {
-          arr = solarr[0];
-          break outer;
+        console.log("Removed " + counter + " numbers in " + tries + " tries.");
+        console.log("Finished sudoku:");
+        console.log(arr);
+        console.log("###### END SUDOKU ######");
+
+        this.sudoku.field = [];
+        for(var i = 0; i < this.cells; i++) {
+          var val = arr[i];
+          this.sudoku.field.push({id: i, value: val, fixed: val != 0, help: []});
         }
-      }
-
-      console.log("Generated sudoku in " + totalTries + " tries:");
-      console.timeEnd("Generating sudoku...");
-      console.log(arr);
-
-      // Solve it, this will generate a random solved sudoku
-      //arr = solve(arr);
-
-      // Now remove values until it has only one solution
-      var counter = 0;
-      var tries = 0;
-      console.log("Now removing numbers...");
-      while(counter < this.settings.emptyCells && tries < this.cells * 50) {
-        tries++;
-        var index = Math.floor(Math.random() * arr.length);
-        var val = arr[index];
-        if(val != 0) {
-          arr[index] = 0;
-
-          var solarr = solver(arr.slice(), 2)
-          //if(arraysEqual(solarr[0], solarr[1])) {
-          if(solarr.length == 1) {
-            // Exactly one solution -> proceed
-            counter++;
-          } else {
-            // Sudoku cannot be solved exactly anymore, put number back in arr and try another
-            arr[index] = val;
-          }
-        }
-      }
-
-      console.log("Removed " + counter + " numbers in " + tries + " tries.");
-      console.log("Finished sudoku:");
-      console.log(arr);
-      console.log("###### END SUDOKU ######");
-
-      this.sudoku.field = [];
-      for(var i = 0; i < this.cells; i++) {
-        var val = arr[i];
-        this.sudoku.field.push({id: i, value: val, fixed: val != 0, help: []});
-      }
-      /*this.sudoku.field = this.$localStorage.set("sudoku", this.sudoku.field);
-      this.$localStorage.set("sudokuElapsedTime", 0);*/
-      this.sudoku.elapsedTime = 0;
-      this.isPause = false;
-      this.isDone = false;
+        /*this.sudoku.field = this.$localStorage.set("sudoku", this.sudoku.field);
+        this.$localStorage.set("sudokuElapsedTime", 0);*/
+        this.sudoku.elapsedTime = 0;
+        this.isPause = false;
+        this.isDone = false;
+        this.isLoading = false;
+      }, 20);
     },
     isPossibleCell: function(number, cell, sudoku) {
       var row = Math.floor(cell / this.size);
@@ -639,6 +653,18 @@ span {
   margin-top: 20px;
 }
 
+.dialog img {
+  display: inline;
+  width: 2em;
+  height: 2em;
+}
+
+.dialog span {
+  position: relative;
+  top: -8px;
+  left: 8px;
+  display: inline;
+}
 
 .icon {
   width: 7vmin;
