@@ -1,11 +1,12 @@
 <template>
   <div>
-    <table class="sudoku">
+    <table>
       <tr v-for="row in sudokuRows">
         <td v-for="entry in row"
             :class="getClass(entry)"
+            :style="{fontSize: fontSize}"
             @click="clicked(entry.id)">
-          <Help v-if="entry.value == 0" :help="entry.help"></Help>
+          <!--<Help v-if="entry.value == 0" :help="entry.help"></Help>-->
           {{ getVal(entry.value) }}
         </td>
       </tr>
@@ -35,6 +36,10 @@ export default {
     size: function() {
       return this.sudoku.xSize*this.sudoku.ySize;
     },
+    fontSize: function() {
+      // TODO
+      return '1em';
+    },
     sudokuRows: function() {
       var arr = [];
       for(var i = 0; i < this.sudoku.field.length; i += this.size) {
@@ -45,18 +50,19 @@ export default {
   },
   methods: {
     getVal: function(value) {
-      if(value == 0) return "";
-      if(this.settings.styleIndex == 1) {
+      if(value == 0) return "0";
+      if(this.settings.style == 1) {
         if(value < 10) return value;
         else return String.fromCharCode(value+55);
       }
 
-      if(this.settings.styleIndex == 2) return String.fromCharCode(value+64);
-      if(this.settings.styleIndex >= 3) return this.custom[value-1];
+      if(this.settings.style == 2) return String.fromCharCode(value+64);
+      if(this.settings.style >= 3) return this.settings.customStyle[value-1];
       return value;
     },
     getClass: function(entry) {
       var classes = "cell";
+      if(entry.value == 0) classes += " opaque";
       if(entry.id % this.sudoku.xSize == 0) classes += " thick-border-left";
       if(Math.floor(entry.id / this.size) % this.sudoku.ySize == 0) classes += " thick-border-top";
 
@@ -84,9 +90,12 @@ h1, h2 {
 }
 
 table {
-  margin: auto;
+  height: 90%;
+  width: 90%;
+  margin: 5%;
   border: 3px solid black;
   border-collapse: collapse;
+  background-color: #FFF;
   box-shadow: 0px 2px 10px #888888;
   font-family: sans-serif;
 }
@@ -102,36 +111,26 @@ th, td {
   border-top: 3px solid black;
 }
 
-.sudoku {
-  height: 90vmin;
-  width: 90vmin;
-  max-width: 450px;
-  max-height: 450px;
-}
 
 .cell {
-  width: 10vmin;
-  height: 10vmin;
-  font-size: 7vmin;
+  font-size: 1em;
   padding: 0px;
+  cursor: default;
 }
-@media (min-width: 450px) {
-  .cell {
-    width: 25px;
-    height: 25px;
-    font-size: 35px;
-  }
-}
-
 
 .fixed {
   background-color: #DDD;
+  cursor: not-allowed;;
 }
 
 .active {
   background-color: #555;
   box-shadow: inset 0 0 2px 2px #222;
   color: #EEE;
+}
+
+.opaque {
+  color: rgba(0,0,0,0);
 }
 
 </style>

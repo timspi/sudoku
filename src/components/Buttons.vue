@@ -1,14 +1,8 @@
 <template>
-  <div>
-    <table class="buttons">
-      <tr v-for="row in [0,1]">
-        <td v-for="entry in [0,1,2,3,4]">
-          <button @click="clicked(entry + 5*row)" :class="{helpmodeColor: helpmode}">
-            {{ btnStr(entry + 5*row) }}
-          </button>
-        </td>
-      </tr>
-    </table>
+  <div class="layout">
+    <button v-for="button in buttons" @click="clicked(button.id)" :class="{helpmodeColor: button.help}">
+          {{ button.val }}
+    </button>
     <div class="notice">{{ (helpmode ? 'Notizen' : 'Zahlen') }} einfügen</div>
   </div>
 </template>
@@ -27,50 +21,52 @@ export default {
       this.$emit('buttonclicked', { id: id });
     },
     btnStr: function(value) {
-      if(value == 0) return "⇄";
-
-      if(this.styleIndex == 1) {
+      if(this.settings.style == 1) {
         if(value < 10) return value;
         else return String.fromCharCode(value+55);
       }
-      if(this.styleIndex == 2) return String.fromCharCode(value+64);
-      if(this.styleIndex >= 3) return this.custom[value-1];
+      if(this.settings.style == 2) return String.fromCharCode(value+64);
+      if(this.settings.style >= 3) return this.settings.customStyle[value-1];
       return value;
     }
   },
   props: {
     helpmode: Boolean,
     size: Number,
-    styleIndex: Number,
-    custom: Array
+    settings: Object
+  },
+  computed: {
+    buttons: function() {
+      var arr = [];
+      for(var i = 1; i <= this.size; i++) {
+        arr.push({id: i, val: this.btnStr(i), help: (this.helpmode ? 'helpmodeColor' : '')});
+      }
+
+      arr.push({id: 0, val: '⇄'});
+      arr.push({id: -1, val: '🗑'});
+
+      return arr;
+    }
   }
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h1, h2 {
-  font-weight: normal;
-}
 
-table {
+.layout {
+  width: 100%;
+  height: 100%;
   margin: auto;
-  width: 90vmin;
-  max-width: 450px;
-  padding-top: 3vmax;
-}
-
-td {
-  width: 20%;
-  height: 15vmin;
 }
 
 button {
-  width: 90%;
-  height: 90%;
+  width: 30%;
+  margin: 1%;
+  padding: 3%;
   background-color: #555;
   color: #EEE;
-  font-size: 7vmin;
+  font-size: 1.5em;
   border: none;
   text-align: center;
   text-decoration: none;
@@ -80,21 +76,8 @@ button {
 
 .notice {
   padding-top: 10px;
-  font-size: 6vmin;
+  font-size: 1.5em;
 }
-
-@media (min-width: 450px) {
-  button {
-    font-size: 35px;
-  }
-  td {
-    height: 60px;
-  }
-  .notice {
-    font-size: 30px;
-  }
-}
-
 
 .helpmodeColor {
   background-color: #888;

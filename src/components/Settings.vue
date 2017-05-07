@@ -25,9 +25,9 @@
       <span style="display: inline-block; text-transform: uppercase; font-family: sans">{{ stylePreview }}</span>
       <span v-if="styleErr" style="color: #F00">Stil enthält zu wenig Zeichen für gewählte Größe</span>
     </div>
-    <div v-if="size > 36 || difficulty > 4" class="card">
+    <div v-if="size >= 36" class="card">
       <span class="warning">Achtung</span>
-      <span>Es kann zu <span style="display: inline" v-if="size > 36">erheblichen Darstellungsfehlern und </span>erhöhten Rechenzeiten kommen.</span>
+      <span>Die Berechnung kann mehrere Minuten dauern.</span>
     </div>
     <br>
     <button class="" @click="createNew" :disabled="styleErr">Speichern</button>
@@ -45,7 +45,8 @@ export default {
       difficulty: 3,
       style: 0,
       custom: "",
-      emoji: "😀,😁,😂,😃,😄,😅,😆,😇,😈,😉,😊,😋,😌,😍,😎,😏,😐,😑,😒,😓,😔,😕,😖,😗,😘,😙,😚,😛,😜,😝,😞,😟,😠,😡,😢,😣,😤,😥,😦,😧,😨,😩,😪,😫,😬,😭,😮,😯,😰,😱,😲,😳,😴,😵,😶,😷,😸,😹,😺,😻,😼,😽,😾,😿,🙀,🙁,🙂,🙃,🙄,🙅,🙆,🙇,🙈,🙉,🙊,🙋,🙌,🙍,🙎,🙏"
+      emoji: "😀,😁,😂,😃,😄,😅,😆,😇,😈,😉,😊,😋,😌,😍,😎,😏,😐,😑,😒,😓,😔,😕,😖,😗,😘,😙,😚,😛,😜,😝,😞,😟,😠,😡,😢,😣,😤,😥,😦,😧,😨,😩,😪,😫,😬,😭,😮,😯,😰,😱,😲,😳,😴,😵,😶,😷,😸,😹,😺,😻,😼,😽,😾,😿,🙀,🙁,🙂,🙃,🙄,🙅,🙆,🙇,🙈,🙉,🙊,🙋,🙌,🙍,🙎,🙏",
+      percentages: [0,20,35,50,62,75]
     }
   },
   methods: {
@@ -54,9 +55,9 @@ export default {
         save: true,
         xSize: this.xSize,
         ySize: this.ySize,
-        emptyCells: this.emptyCells,
+        difficulty: this.percentages[this.difficulty],
         style: this.style,
-        custom: ( this.style == 4 ? this.customArr : this.emoji.split(",").slice(0,this.size) )});
+        customStyle: ( this.style == 4 ? this.customArr : this.emoji.split(",").slice(0,this.size) )});
     },
     cancel: function() {
       this.$emit('createNew', {});
@@ -106,7 +107,7 @@ export default {
       return this.xSize*this.ySize;
     },
     emptyCells: function() {
-      return Math.floor([0,20,35,50,62,75][this.difficulty]*this.size*this.size/100);
+      return Math.floor(this.percentages[this.difficulty]*this.size*this.size/100);
     },
     customArr: function() {
       return this.custom.split(",");
@@ -120,7 +121,19 @@ export default {
     this.ySize = sudoku.ySize;
 
     this.style = settings.style;
-    this.custom = settings.custom;
+    for(var i = 0; i < this.percentages.length; i++) {
+      if(settings.difficulty == this.percentages[i]) {
+        this.difficulty = i;
+        break;
+      }
+    }
+
+    this.custom = this.$localStorage.get("custom");
+  },
+  watch: {
+    custom: function(val) {
+      this.$localStorage.set("custom", val);
+    }
   }
 }
 </script>

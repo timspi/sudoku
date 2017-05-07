@@ -20,7 +20,11 @@ new Vue({
     },
     settings: {
       type: Object,
-      default: {style: 0, custom: ["😇","🐨","🍎","😍","🦊","🥝","🎈","🐏","😎","💣","🔪","🗡"], emptyCells: 40}
+      default: {style: 0, difficulty: 50}
+    },
+    custom: {
+      type: String,
+      default: "🚗,🚕,🚙,🚌,🚜,🚛,🚲,🛵,🏍"
     }
   }
 })

@@ -1,3 +1,28 @@
+self.addEventListener('message', function(e) {
+  switch(e.data.cmd) {
+    case 'start':
+      self.postMessage('STARTED');
+			go(e.data);
+      break;
+    case 'stop':
+      //self.postMessage('WORKER STOPPED: ' + data.msg + '. (buttons will no longer work)');
+			console.log("Generation terminated by user!");
+      self.close(); // Terminates the worker.
+      break;
+    default:
+      self.postMessage('Unknown command: ' + data.msg);
+  };
+}, false);
+
+function go(data) {
+	var generator = sudoku_generator(data.xSize, data.ySize);
+	var arr = generator(data.emptyCells);
+
+	self.postMessage({status: 'ok', sudoku: arr});
+}
+
+
+
 /* The MIT License
 
    Copyright (c) 2011 by Attractive Chaos <attractor@live.co.uk>
@@ -188,3 +213,132 @@ for (var i = 0; i < solarr.length; ++i) {
 alert(solstr)
 
 */
+
+
+// Code to generate a sudoku (by Tim Spickermann)
+function sudoku_generator(x, y) {
+	var xSize = x, ySize = y;
+	var size = xSize*ySize;
+	var cells = Math.pow(size, 2);
+
+
+	function getRandomInt(min, max) {
+	  min = Math.ceil(min);
+	  max = Math.floor(max);
+	  return Math.floor(Math.random() * (max - min)) + min;
+	}
+
+
+	function isPossibleCell(number, cell, sudoku) {
+		var row = Math.floor(cell / size);
+		var col = cell % size;
+		//var block = (Math.floor(row) / sudoku.xSize) * sudoku.xSize + Math.floor(col / sudoku.ySize);
+		var block = Math.floor(cell/(size*ySize))*ySize + Math.floor(col / xSize);
+		//console.log("Cell: " + cell + ", row: " + row + ", col: " + col + ", block: " + block);
+
+		for(var i = 0; i < size; i++) {
+			if(sudoku[row*size + i] == number || // Check row
+					sudoku[col + size*i] == number || // Check col
+					sudoku[Math.floor(block/xSize)*xSize*size + i%ySize + size*Math.floor(i/ySize) + ySize*(block%ySize)] == number) { // Check block
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	return function(emptyCells) {
+		console.log("###### NEW SUDOKU ######");
+
+
+		console.log("Initialize solver at " + xSize + "x" + ySize);
+		var solver = sudoku_solver(xSize, ySize);
+
+		// Create an empty field
+		var arr = [];
+		var totalTries = 0;
+
+		console.log("Generating sudoku...");
+		console.time("Elapsed time")
+
+		// Try to generate a sudoku
+		outer: while(totalTries < 1000) {
+			totalTries++;
+
+			// Fill array with zeros
+			arr = [];
+			for(var i = 0; i < cells; i++) {
+				arr.push(0);
+			}
+
+			// Add (e.g. 9x9: 81/3=27) random numbers without rule conflicts
+			for(var i = 0; i < Math.min(25, cells/3); i++) {
+			//for(var i = 0; i < 30; i++) {
+				for(var triesCounter = 0; triesCounter < 500; triesCounter++) {
+					var pos = getRandomInt(0, cells);
+					var val = getRandomInt(0, size);
+					if(isPossibleCell(val, pos, arr)) {
+						//console.log("Put " + val + " in arr at pos " + pos);
+						arr[pos] = val;
+						break;
+					}
+				}
+			}
+
+			// Try to solve sudoku
+			console.log("Try to solve sudoku:");
+			console.log(arr.join(","));
+			var solarr = solver(arr.slice(), 2);
+			//console.log("=> Solutions: " + solarr.length);
+			if(solarr.length > 0) {
+				arr = solarr[0];
+				break outer;
+			}
+		}
+
+		console.log("Generated sudoku in " + totalTries + " tries:");
+		console.timeEnd("Elapsed time");
+		console.log(arr);
+
+		// Solve it, this will generate a random solved sudoku
+		//arr = solve(arr);
+
+		// Now remove values until it has only one solution
+		var counter = 0;
+		var tries = 0;
+		console.log("Now removing numbers...");
+		var startTime = new Date();
+		while(counter < emptyCells && tries < cells * 50) {
+			tries++;
+			var index = Math.floor(Math.random() * arr.length);
+			var val = arr[index];
+			if(val != 0) {
+				arr[index] = 0;
+
+				var solarr = solver(arr.slice(), 2)
+				//if(arraysEqual(solarr[0], solarr[1])) {
+				if(solarr.length == 1) {
+					// Exactly one solution -> proceed
+					counter++;
+				} else {
+					// Sudoku cannot be solved exactly anymore, put number back in arr and try another
+					arr[index] = val
+				}
+			}
+			// Check max execution time
+			var timeDiff = new Date() - startTime;
+			if(timeDiff > 20000) {
+				console.log("Stopped by max execution time");
+				break;
+			}
+		}
+
+		console.log("Removed " + counter + " numbers in " + tries + " tries.");
+		console.log("Finished sudoku:");
+		console.log(arr);
+		console.log("###### END SUDOKU ######");
+
+		return arr;
+	}
+
+}
