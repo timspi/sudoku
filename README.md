@@ -2,6 +2,8 @@
 
 > A sudoku web app with custom size.
 
+Check it out here: [timsp.de/sudoku](http://timsp.de/sudoku/).
+
 ## Build Setup
 
 ``` bash
