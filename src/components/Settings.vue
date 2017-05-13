@@ -1,7 +1,9 @@
 <template>
-  <div>
+  <div class="container">
+    <h1>Einstellungen</h1>
     <div class="card">
       <h2>Sudokugröße</h2>
+      <img @click="cancel" src="static/cancel.svg">
       <button class="small minus" @click="minusSize" :disabled="xSize <= 2 ? true:false">-</button>
       <button class="small plus" @click="plusSize">+</button>
       <span>{{xSize}}x{{ySize}}</span><br>
@@ -28,10 +30,12 @@
     <div v-if="size >= 36" class="card">
       <span class="warning">Achtung</span>
       <span>Die Berechnung kann mehrere Minuten dauern.</span>
+      <span>Exponentieller Anstieg der Rechenzeit mit der Sudokugröße.</span>
     </div>
     <br>
     <button class="" @click="createNew" :disabled="styleErr">Speichern</button>
     <button class="" @click="cancel">Abbrechen</button>
+    <br><br>
   </div>
 </template>
 
@@ -141,6 +145,26 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 
+.container {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  background-color: white;
+  overflow: auto;
+  box-shadow: 0px 0px 10px 3px #000;
+}
+
+img {
+  position: absolute;;
+  top: 1.2em;
+  right: 2.8em;
+  width: 2em;
+  height: 2em;
+}
+
 h2 {
   text-decoration: underline;
 }
@@ -154,7 +178,6 @@ button {
   border: none;
   text-align: center;
   text-decoration: none;
-  box-shadow: 0px 2px 5px #888888;
   cursor: pointer;
 }
 

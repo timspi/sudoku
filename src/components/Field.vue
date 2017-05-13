@@ -1,6 +1,6 @@
 <template>
   <div>
-    <table>
+    <table :style="scaleStr" id="table">
       <tr v-for="row in sudokuRows">
         <td v-for="entry in row"
             :class="getClass(entry)"
@@ -25,20 +25,18 @@ export default {
   data () {
     return {
       msg: 'Welcome to Your Vue.js App',
-      active: -1
+      active: -1,
+      fontSize: '1em'
     }
   },
   props: {
     sudoku: Object,
-    settings: Object
+    settings: Object,
+    transform: Object
   },
   computed: {
     size: function() {
       return this.sudoku.xSize*this.sudoku.ySize;
-    },
-    fontSize: function() {
-      // TODO
-      return '1em';
     },
     sudokuRows: function() {
       var arr = [];
@@ -46,6 +44,24 @@ export default {
         arr.push(this.sudoku.field.slice(i, i + this.size));
       }
       return arr;
+    },
+    scaleStr: function() {
+      var x = 0, y = 0;
+      var div = this.$el;
+      if(div && this.transform.x != -1 && this.transform.y != -1) {
+        var size = div.offsetWidth;
+
+        //this.calcFontSize(size);
+
+        var table = document.getElementById("table");
+        //console.log(table);
+        x = (size/2 - this.transform.x) / size * Math.max(table.offsetWidth*this.transform.scale*1.1 - size, 0);
+        y = (size/2 - this.transform.y) / size * Math.max(table.offsetHeight*this.transform.scale*1.1 - size, 0);
+
+        //x += this.transform.deltaX * this.transform.scale;
+        //y += this.transform.deltaY * this.transform.scale;
+      }
+      return "transform: translate(" + x + "px, " + y + "px) scale(" + this.transform.scale + ")";
     }
   },
   methods: {
@@ -71,13 +87,40 @@ export default {
 
       return classes;
     },
+    calcFontSize: function(size) {
+      if(this.settings.style >= 3) {
+        var max = this.getMaxSymbolWidth(this.settings.customStyle, "sans 10px")
+        this.fontSize = Math.min(size/this.size/40*max, 24) + 'px';
+      } else if(this.settings.style == 0 && this.size > 9) {
+        // Numbers with two digits -> more space needed
+        this.fontSize = Math.min(size/this.size/2.5, 24) + 'px';
+      } else {
+        this.fontSize = Math.min(size/this.size/1.5, 24) + 'px';
+      }
+    },
     clicked: function(id) {
       if(!this.sudoku.field[id].fixed) {
         if(this.active == id) this.active = -1;
         else this.active = id;
         this.$emit('cellclicked', { active: this.active });
       }
+    },
+    getMaxSymbolWidth: function(symbols, font) {
+      // re-use canvas object for better performance
+      var canvas = this.getMaxSymbolWidth.canvas || (this.getMaxSymbolWidth.canvas = document.createElement("canvas"));
+      var context = canvas.getContext("2d");
+      context.font = font;
+
+      var max = 0;
+      for(var i = 0; i < symbols.length; i++) {
+        var metrics = context.measureText(symbols[i]);
+        if(max < metrics.width) max = metrics.width;
+      }
+      return max;
     }
+  },
+  mounted: function() {
+    this.calcFontSize(this.$el.offsetWidth);
   }
 }
 </script>
@@ -115,17 +158,17 @@ th, td {
 .cell {
   font-size: 1em;
   padding: 0px;
-  cursor: default;
+  cursor: pointer;
 }
 
 .fixed {
   background-color: #DDD;
-  cursor: not-allowed;;
+  cursor: default;
 }
 
 .active {
   background-color: #555;
-  box-shadow: inset 0 0 2px 2px #222;
+  /*box-shadow: inset 0 0 2px 2px #222;*/
   color: #EEE;
 }
 

@@ -1,6 +1,6 @@
 <template>
   <div class="layout">
-    <button v-for="button in buttons" @click="clicked(button.id)" :class="{helpmodeColor: button.help}">
+    <button v-for="button in buttons" @click="clicked(button.id)" :class="{helpmodeColor: button.help}" :style="{width: btnWidth}">
           {{ button.val }}
     </button>
     <div class="notice">{{ (helpmode ? 'Notizen' : 'Zahlen') }} einfügen</div>
@@ -33,6 +33,7 @@ export default {
   props: {
     helpmode: Boolean,
     size: Number,
+    xSize: Number,
     settings: Object
   },
   computed: {
@@ -46,6 +47,11 @@ export default {
       arr.push({id: -1, val: '🗑'});
 
       return arr;
+    },
+    btnWidth: function() {
+      var val = 1/this.xSize*90;
+      console.log(val);
+      return val + "%";
     }
   }
 }
@@ -56,12 +62,10 @@ export default {
 
 .layout {
   width: 100%;
-  height: 100%;
   margin: auto;
 }
 
 button {
-  width: 30%;
   margin: 1%;
   padding: 3%;
   background-color: #555;
