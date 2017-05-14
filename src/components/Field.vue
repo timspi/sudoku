@@ -25,7 +25,6 @@ export default {
   data () {
     return {
       msg: 'Welcome to Your Vue.js App',
-      active: -1,
       fontSize: '1em'
     }
   },
@@ -83,7 +82,7 @@ export default {
       if(Math.floor(entry.id / this.size) % this.sudoku.ySize == 0) classes += " thick-border-top";
 
       if(entry.fixed) classes += " fixed";
-      else if(entry.id == this.active) classes += " active";
+      /*else */if(entry.id == this.sudoku.active) classes += " active";
 
       return classes;
     },
@@ -100,9 +99,9 @@ export default {
     },
     clicked: function(id) {
       if(!this.sudoku.field[id].fixed) {
-        if(this.active == id) this.active = -1;
-        else this.active = id;
-        this.$emit('cellclicked', { active: this.active });
+        if(this.sudoku.active == id) this.sudoku.active = -1;
+        else this.sudoku.active = id;
+        this.$emit('cellclicked', { active: this.sudoku.active });
       }
     },
     getMaxSymbolWidth: function(symbols, font) {
@@ -169,6 +168,11 @@ th, td {
 .active {
   background-color: #555;
   /*box-shadow: inset 0 0 2px 2px #222;*/
+  color: #EEE;
+}
+
+.active.fixed {
+  background-color: #888;
   color: #EEE;
 }
 

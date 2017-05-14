@@ -3,7 +3,7 @@
     <button v-for="button in buttons" @click="clicked(button.id)" :class="{helpmodeColor: button.help}" :style="{width: btnWidth}">
           {{ button.val }}
     </button>
-    <div class="notice">{{ (helpmode ? 'Notizen' : 'Zahlen') }} einfügen</div>
+    <!--<div class="notice">{{ (helpmode ? 'Notizen' : 'Zahlen') }} einfügen</div>-->
   </div>
 </template>
 
@@ -18,7 +18,7 @@ export default {
   },
   methods: {
     clicked: function(id) {
-      this.$emit('buttonclicked', { id: id });
+      this.$emit('buttonclicked', id);
     },
     btnStr: function(value) {
       if(this.settings.style == 1) {
@@ -43,7 +43,7 @@ export default {
         arr.push({id: i, val: this.btnStr(i), help: (this.helpmode ? 'helpmodeColor' : '')});
       }
 
-      arr.push({id: 0, val: '⇄'});
+      //arr.push({id: 0, val: '⇄'});
       arr.push({id: -1, val: '🗑'});
 
       return arr;
@@ -75,6 +75,7 @@ button {
   text-align: center;
   text-decoration: none;
   box-shadow: 0px 2px 5px #888888;
+  cursor: pointer;
 }
 
 

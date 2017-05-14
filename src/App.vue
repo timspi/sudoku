@@ -77,7 +77,8 @@ export default {
       worker: undefined,
       log: "",
       lastScale: 1,
-      transform: {x: -1, y: -1, deltaX: 0, deltaY: 0, scale: 1}
+      transform: {x: -1, y: -1, deltaX: 0, deltaY: 0, scale: 1},
+      lastNum: {}
     }
   },
   computed: {
@@ -124,24 +125,108 @@ export default {
         this.transform.y = e.clientY;
       }
     },
-    buttonClick: function(data) {
-      if(data.id == 0) {
+    keyDown: function(e) {
+      // Keyboard input
+      if(!this.isSettings) {
+        if(!this.isPause) {
+          if(!(e.keyCode >= 48 && e.keyCode <= 57)) this.lastNum = {};
+
+          if(e.keyCode == 37) {
+            // Left
+            if(e.shiftKey) {
+              this.sudoku.active--;
+              if(this.sudoku.active < 0) this.sudoku.active = this.cells-1;
+            } else {
+              this.goToNextEmptyField(-1);
+            }
+          } else if(e.keyCode == 39) {
+            // Right
+            if(e.shiftKey) {
+              this.sudoku.active++;
+              if(this.sudoku.active >= this.cells) this.sudoku.active = 0;
+            } else {
+              this.goToNextEmptyField(1);
+            }
+          } else if(e.keyCode == 38) {
+            // Up
+            if(e.shiftKey) {
+              this.sudoku.active -= this.size;
+              if(this.sudoku.active < 0) this.sudoku.active = this.cells-1;
+            } else {
+              this.goToNextEmptyField(-this.size);
+            }
+          } else if(e.keyCode == 40) {
+            // Down
+            if(e.shiftKey) {
+              this.sudoku.active += this.size;
+              if(this.sudoku.active >= this.cells) this.sudoku.active = 0;
+            } else {
+              this.goToNextEmptyField(this.size);
+            }
+          } else if(e.keyCode >= 49 && e.keyCode <= 57) {
+            // Number
+            var num = e.keyCode - 48;
+            if(this.lastNum.time + 1000 >= (new Date()).getTime()) {
+              num += this.lastNum.num*10;
+            }
+            this.lastNum = {num: num, time: (new Date()).getTime()};
+            console.log(this.lastNum);
+
+            console.log("Number: " + num);
+            this.buttonClick(num);
+          } else if(e.keyCode >= 65 && e.keyCode <= 90) {
+            // Letter
+            var letter = e.keyCode - 64;
+            console.log("Letter: " + letter);
+            if(this.settings.style == 1) {
+              // A is 10, B is 11, ...
+              this.buttonClick(letter+9);
+            } else if(this.settings.style == 2) {
+              // A is 0, B is 1, ...
+              this.buttonClick(letter);
+            }
+          } else if(e.keyCode == 8 || e.keyCode == 46) {
+            // Delete/Backspace
+            e.preventDefault();
+            this.buttonClick(-1); // Clear cell
+          }
+        }
+        if(e.keyCode == 13 || ((this.settings.style == 0 || this.settings.style > 2) && e.keyCode == 80)) {
+          // Toggle pause
+          this.isPause = !this.isPause;
+        }
+      }
+    },
+    goToNextEmptyField: function(dir) {
+      for(var i = this.sudoku.active+dir; i < this.sudoku.active+this.cells; i += dir) {
+        var tmp = i;
+
+        if(tmp >= this.cells || tmp < 0) tmp += this.cells * (dir < 0 ? 1 : -1);
+
+        if(!this.sudoku.field[tmp].fixed) {
+          this.sudoku.active = tmp;
+          break;
+        }
+      }
+    },
+    buttonClick: function(id) {
+      if(id == 0) {
         this.helpMode = !this.helpMode;
-      } else if(data.id == -1) {
+      } else if(id == -1) {
         this.sudoku.field[this.sudoku.active].value = 0;
         this.sudoku.field[this.sudoku.active].help = [];
-      } else {
-        if(this.sudoku.active != -1) {
+      } else if(id > 0 && id <= this.size) {
+        if(this.sudoku.active != -1 && !this.sudoku.field[this.sudoku.active].fixed) {
           if(this.helpMode) {
             this.sudoku.field[this.sudoku.active].value = 0;
-            var index = this.sudoku.field[this.sudoku.active].help.indexOf(data.id);
+            var index = this.sudoku.field[this.sudoku.active].help.indexOf(id);
             if(index == -1) {
-              this.sudoku.field[this.sudoku.active].help.push(data.id);
+              this.sudoku.field[this.sudoku.active].help.push(id);
             } else {
               this.sudoku.field[this.sudoku.active].help.splice(index, 1);
             }
           } else {
-            this.sudoku.field[this.sudoku.active].value = data.id;
+            this.sudoku.field[this.sudoku.active].value = id;
             this.checkSudoku();
           }
         }
@@ -149,6 +234,7 @@ export default {
       }
     },
     cellClick: function(data) {
+      this.lastNum = {};
       this.sudoku.active = data.active;
     },
     /*solve: function() {
@@ -205,6 +291,7 @@ export default {
     },
     restart: function() {
       this.isLoading = true;
+      this.sudoku.active = -1;
 
       this.worker.postMessage({
         cmd: 'start',
@@ -281,6 +368,13 @@ export default {
 
     window.addEventListener("mousewheel", this.doScroll, false);
     window.addEventListener("mousemove", this.mouseMove, false);
+    document.addEventListener('keydown', this.keyDown);
+    /*document.addEventListener('keyup', (e) => {
+      if(e.keyCode == 16) {
+        // Shift up: Check if active field is fixed, if so, disable selection
+        if(this.sudoku.field[this.sudoku.active].fixed) this.sudoku.active = -1;
+      }
+    });*/
 
     this.sudoku = this.$localStorage.get("sudoku");
     this.settings = this.$localStorage.get("settings");
@@ -385,6 +479,7 @@ header img {
   padding-left: 0.5em;
   float: left;
   height: 80%;
+  cursor: pointer;
 }
 
 #time {
