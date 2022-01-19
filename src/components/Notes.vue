@@ -15,12 +15,12 @@ export default {
   name: 'help',
   data () {
     return {
-      msg: 'Welcome to Your Vue.js App',
     }
   },
   props: {
     help: Array,
-    styleIndex: Number
+    styleIndex: Number,
+    settings: Object
   },
   computed: {
     rows: function() {
@@ -30,6 +30,19 @@ export default {
         arr[Math.floor(pos/3)][pos%3] = this.help[i];
       }
       return arr;
+    }
+  },
+  methods: {
+    getVal: function(value) {
+      if(value == 0) return "0";
+      if(this.settings.style == 1) {
+        if(value < 10) return value;
+        else return String.fromCharCode(value+55);
+      }
+
+      if(this.settings.style == 2) return String.fromCharCode(value+64);
+      if(this.settings.style >= 3) return this.settings.customStyle[value-1];
+      return value;
     }
   }
 }

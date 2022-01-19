@@ -4,6 +4,10 @@ self.addEventListener('message', function(e) {
       self.postMessage('STARTED');
 			go(e.data);
       break;
+    case 'hint':
+      self.postMessage('STARTED HINT');
+			hint(e.data);
+      break;
     case 'stop':
       //self.postMessage('WORKER STOPPED: ' + data.msg + '. (buttons will no longer work)');
 			console.log("Generation terminated by user!");
@@ -21,7 +25,347 @@ function go(data) {
 	self.postMessage({status: 'ok', sudoku: arr});
 }
 
+function hint(data) {
+  var helper = sudoku_helper(data.field, data.xSize, data.ySize);
+	var hint = helper();
 
+	self.postMessage({status: 'ok hint', hint});
+}
+
+
+function sudoku_helper(f, x, y) {
+  var field = f;
+  var xSize = x;
+  var ySize = y;
+  var size = x*y;
+  console.log("x:" + xSize + ", y:" + ySize + ", size:" + size);
+
+  var rowNums = [], colNums = [], blockNums = [];
+
+  for(var i = 0; i < size; i++) {
+    rowNums[i] = 0;
+    colNums[i] = 0;
+    blockNums[i] = 0;
+
+    for(var j = 0; j < size; j++) {
+      var r = field[getCellInRow(i,j)].value;
+      if(r != 0) rowNums[i] |= 1 << r;
+
+      var c = field[getCellInCol(i,j)].value;
+      if(c != 0) colNums[i] |= 1 << c;
+
+      var b = field[getCellInBlock(i,j)].value;
+      if(b != 0) blockNums[i] |= 1 << b;
+    }
+  }
+
+  var candidates = [];
+
+  return function() {
+    getAllCandidates();
+
+    var error = getError();
+    if(error) return {
+      title: "Fehler",
+      hint: " Fehler in " + error,
+      strategy: "Falls der Fehler nicht gefunden wird, kann in den Einstellungen die Hervorhebung von Fehlern aktiviert werden."
+    }
+
+    // Maybe sudoku isn't solveable anymore, although there is no error -> try to solve sudoku
+
+    var openSingle = findOpenSingle();
+    if(openSingle) return {
+      title: "Open Single",
+      hint: "In " + openSingle + " ist nur noch ein Feld frei.",
+      strategy: "In " + openSingle + " muss jede Zahl genau einmal vorkommen, somit muss die noch fehlende Zahl in das freie Feld eingetragen werden."
+    }
+
+    var hiddenSingle = findHiddenSingle();
+    if(hiddenSingle) return {
+      title: "Hidden Single",
+      hint: " In " + hiddenSingle + " ist für eine Zahl nur noch eine Stelle möglich.",
+      strategy: "Für jede Zahl, die noch nicht in " + hiddenSingle + " enthalten ist, die freien Felder in " + hiddenSingle + " betrachten.<br>Dabei wird mindestens eine Zahl nur noch an exakt einer Stelle eingefügt werden können, diese hier eintragen.",
+    }
+
+    var nakedSingle = findNakedSingle();
+    if(nakedSingle) return {
+      title: "Naked Single",
+      hint: "In " + nakedSingle + " gibt es ein Feld, in das nur noch genau eine Zahl eingefügt werden kann.",
+      strategy: "Für jedes Feld in " + nakedSingle + " Alle Zahlen, die in das Feld eingetragen werden können als Notizen eintragen.<br>Das Feld, in dem am Ende nur eine Zahl möglich ist mit dieser Zahl füllen.",
+    }
+
+    // TODO several other solving methods
+
+    return {
+      title: "Achtung",
+      hint: "Aktuell werden nur Open, Hidden und Naked Singles unterstützt, allerdings kann aktuell keine weitere Zahl mit diesen Strategien gefunden werden.",
+      strategy: 'Hier gibt es weitere Lösungsansätze zum nachlesen: <a href="https://de.wikipedia.org/wiki/Sudoku#L.C3.B6sungsmethoden">Wikipedia</a>'
+    }
+  }
+
+  function getError() {
+
+		for(var i = 0; i < size; i++) {
+      var block = {}, row = {}, col = {};
+      for(var j = 0; j < size; j++) {
+        var r = field[i*size + j].value;
+  			if(r != 0 && row[r]) return "Zeile " + (i+1);
+        else row[r] = true;
+
+        var c = field[getCellInCol(i,j)].value;
+  			if(c != 0 && col[c]) return "Spalte " + (i+1);
+        else col[c] = true;
+
+        var b = field[getCellInBlock(i,j)].value;
+  			if(b != 0 && block[b]) return "Block " + (i+1);
+        else block[b] = true;
+      }
+		}
+
+		return undefined;
+	}
+
+  function getAllCandidates() {
+    candidates = [];
+    for(var i = 0; i < field.length; i++) {
+      var arr = [];
+      if(field[i].value == 0) {
+        var row = getRow(i);
+        var col = getCol(i);
+        var block = getBlock(i);
+
+        var vals = rowNums[row] | colNums[col] | blockNums[block];
+        for(var num = 1; num <= size; num++) {
+          vals >>= 1;
+          if(!(vals & 1)) arr.push(num);
+        }
+      }
+
+      candidates.push(arr);
+    }
+  }
+
+  function findOpenSingle() {
+    for(var i = 0; i < size; i++) {
+      if(countBinary(rowNums[i]) == size-1) return "Zeile " + (i+1);
+      if(countBinary(colNums[i]) == size-1) return "Spalte " + (i+1);
+      if(countBinary(blockNums[i]) == size-1) return "Block " + (i+1);
+    }
+    return undefined;
+  }
+
+  function findNakedSingle() {
+    for(var i = 0; i < field.length; i++) {
+      if(field[i].value == 0) {
+        var row = getRow(i);
+        var col = getCol(i);
+        var block = getBlock(i);
+
+        var vals = rowNums[row] | colNums[col] | blockNums[block];
+        /*var counter = 0;
+        for(var j = 0; j < 9; j++) {
+          vals >>= 1;
+          //console.log(dec2bin(vals), dec2bin(vals&1));
+          if(vals & 1) counter++;
+        }
+        //console.log(counter);
+        //if(counter == 8) return "Block " + (block+1);
+        console.log(vals.toString(2).split('1').length, counter);*/
+        if(countBinary(vals) == size-1) return "Block " + (block+1);
+        /*if(values.length == 8) {
+          return "Block " + (block+1);// + ", Zeile " + row + ", Spalte " + col;
+        }*/
+      }
+    }
+    return undefined;
+  }
+
+  function findHiddenSingle() {
+    for(var i = 0; i < size; i++) {
+      var row = rowNums[i];
+      var col = colNums[i];
+      var block = blockNums[i];
+      for(var num = 1; num <= size; num++) {
+        // ROW
+        if(!(row & 1 << num)) { // !row.includes(num)
+          // num isn't already in row, check if it can only be placed at one position
+          var counter = 0;
+          for(var j = 0; j < size; j++) {
+            if(field[getCellInRow(i,j)].value == 0) {
+              var possibleVals = candidates[getCellInRow(i,j)];
+              if(possibleVals.includes(num)) counter++;
+            }
+          }
+          if(counter == 1) {
+            return "Zeile " + (i+1);
+          }
+        }
+        // COL
+        if(!(col & 1 << num)) {
+          // num isn't already in col, check if it can only be placed at one position
+          var counter = 0;
+          for(var j = 0; j < size; j++) {
+            if(field[getCellInCol(i,j)].value == 0) {
+              var possibleVals = candidates[getCellInCol(i,j)];
+              if(possibleVals.includes(num)) counter++;
+            }
+          }
+          if(counter == 1) {
+            return "Spalte " + (i+1);
+          }
+        }
+        // BLOCK
+        if(!(block & 1 << num)) {
+          // num isn't already in block, check if it can only be placed at one position
+          var counter = 0;
+          for(var j = 0; j < size; j++) {
+            if(field[getCellInBlock(i,j)].value == 0) {
+              var possibleVals = candidates[getCellInBlock(i,j)];
+              if(possibleVals.includes(num)) counter++;
+            }
+          }
+          if(counter == 1) {
+            return "Block " + (i+1);
+          }
+        }
+      }
+    }
+  }
+
+  // Utility functions
+  function dec2bin(dec){
+    return (dec >>> 0).toString(2);
+  }
+  function countBinary(val) {
+    return dec2bin(val).split('1').length - 1;
+  }
+  function getRow(cell) {
+    return Math.floor(cell / size);
+  }
+  function getCol(cell) {
+    return cell % size;
+  }
+  function getBlock(cell) {
+    return Math.floor(cell/(size*ySize))*ySize +
+           Math.floor(getCol(cell) / xSize);
+  }
+  function getCellInRow(row, cell) {
+    return row*size + cell;
+  }
+  function getCellInCol(col, cell) {
+    return col + cell*size;
+  }
+  function getCellInBlock(block, cell) {
+    return xSize*(block%ySize) + ySize*size*Math.floor(block/ySize) + cell%xSize + Math.floor(cell/xSize)*size;
+  }
+}
+
+
+/*
+function sudoku_helper(f, x, y) {
+  var field = f;
+  var xSize = x;
+  var ySize = y;
+  var size = x*y;
+
+  var rowNums = [], colNums = [], blockNums = [];
+
+  for(var i = 0; i < size; i++) {
+    var block = [], row = [], col = [];
+
+    for(var j = 0; j < size; j++) {
+      var r = field[i*size + j].value;
+      if(r != 0 && !row.includes(r)) row.push(r);
+
+      var c = field[i + j*size].value;
+      if(c != 0 && !col.includes(c)) col.push(c);
+
+      var b = field[xSize*(i%xSize) + ySize*size*Math.floor(i/xSize) + j%xSize + Math.floor(j/xSize)*size].value;
+      if(b != 0 && !block.includes(b)) block.push(b);
+    }
+    rowNums.push(row);
+    colNums.push(col);
+    blockNums.push(block);
+  }
+
+  return function() {
+    var error = getError();
+    if(error) return "Fehler in " + error;
+
+    var nakedSingle = findNakedSingle();
+    if(nakedSingle) return "Nackter Einser in " + nakedSingle +
+    "\n(In " + nakedSingle + " gibt es ein Feld, in das nur noch genau eine Zahl eingefügt werden kann.)";
+
+    //var hiddenSingle = findHiddenSingle();
+    //if(hiddenSingle) return "Versteckter Einser: " + hiddenSingle;
+
+    // TODO several other solving methods
+    return "Oh nein Jim, er ist tot."
+  }
+
+  function getError() {
+
+		for(var i = 0; i < size; i++) {
+      var block = {}, row = {}, col = {};
+
+      for(var j = 0; j < size; j++) {
+        var r = field[i*size + j].value;
+  			if(r != 0 && row[r]) return "Zeile " + (i+1);
+        else row[r] = true;
+
+        var c = field[i + j*size].value;
+  			if(c != 0 && col[c]) return "Spalte " + (i+1);
+        else col[c] = true;
+
+        var b = field[xSize*(i%xSize) + ySize*size*Math.floor(i/xSize) + j%xSize + Math.floor(j/xSize)*size].value;
+  			if(b != 0 && block[b]) return "Block " + (i+1);
+        else block[b] = true;
+      }
+		}
+
+		return undefined;
+	}
+
+  function findNakedSingle() {
+    for(var i = 0; i < field.length; i++) {
+      if(field[i].value == 0) {
+        var row = getRow(i);
+        var col = getCol(i);
+        var block = getBlock(i);
+
+        var values = arrayUnique(rowNums[row].concat(colNums[col]).concat(blockNums[block]));
+        if(values.length == 8) {
+          return "Block " + (block+1);// + ", Zeile " + row + ", Spalte " + col;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  // Utility functions
+  function getRow(cell) {
+    return Math.floor(cell / size);
+  }
+  function getCol(cell) {
+    return cell % size;
+  }
+  function getBlock(cell) {
+    return Math.floor(cell/(size*ySize))*ySize +
+           Math.floor(getCol(cell) / xSize);
+  }
+
+  function arrayUnique(array) {
+    var a = array.concat();
+    for(var i=0; i<a.length; ++i) {
+      for(var j=i+1; j<a.length; ++j) {
+        if(a[i] === a[j])
+          a.splice(j--, 1);
+      }
+    }
+    return a;
+  }
+}
+*/
 
 /* The MIT License
 
@@ -240,6 +584,7 @@ function sudoku_generator(x, y) {
 			if(sudoku[row*size + i] == number || // Check row
 					sudoku[col + size*i] == number || // Check col
 					sudoku[Math.floor(block/xSize)*xSize*size + i%ySize + size*Math.floor(i/ySize) + ySize*(block%ySize)] == number) { // Check block
+            //TODO xSize*(i%xSize) + ySize*size*Math.floor(i/xSize) + j%xSize + Math.floor(j/xSize)*size
 				return false;
 			}
 		}
@@ -286,8 +631,8 @@ function sudoku_generator(x, y) {
 			}
 
 			// Try to solve sudoku
-			console.log("Try to solve sudoku:");
-			console.log(arr.join(","));
+			//console.log("Try to solve sudoku:");
+			//console.log(arr.join(","));
 			var solarr = solver(arr.slice(), 2);
 			//console.log("=> Solutions: " + solarr.length);
 			if(solarr.length > 0) {
@@ -296,9 +641,9 @@ function sudoku_generator(x, y) {
 			}
 		}
 
-		console.log("Generated sudoku in " + totalTries + " tries:");
+		console.log("Generated sudoku in " + totalTries + " tries.");
 		console.timeEnd("Elapsed time");
-		console.log(arr);
+		//console.log(arr);
 
 		// Solve it, this will generate a random solved sudoku
 		//arr = solve(arr);

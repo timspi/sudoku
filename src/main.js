@@ -9,6 +9,23 @@ Vue.use(VueLocalStorage)
 import VueTouch from 'vue-touch'
 Vue.use(VueTouch, {name: 'v-touch'})
 
+import axios from 'axios'
+Object.defineProperties(Vue.prototype, {
+  $axios: {
+    get: function () {
+      return axios;
+    }
+  }
+});
+
+Object.defineProperties(Vue.prototype, {
+  $scrUrl: {
+    get: function () {
+      return "/sudokuscore.php";
+    }
+  }
+});
+
 Vue.config.productionTip = false
 
 /* eslint-disable no-new */
@@ -19,7 +36,7 @@ new Vue({
   localStorage: {
     sudoku: {
       type: Object,
-      default: {xSize: 3, ySize: 3, field: [], elapsedTime: 0, active: -1}
+      default: {xSize: 3, ySize: 3, field: [], elapsedTime: 0, active: -1, difficulty: 50, options: false, hints: 0}
     },
     settings: {
       type: Object,
@@ -28,6 +45,10 @@ new Vue({
     custom: {
       type: String,
       default: "🚗,🚕,🚙,🚌,🚜,🚛,🚲,🛵,🏍"
+    },
+    games: {
+      type: Array,
+      default: []
     }
   }
 })

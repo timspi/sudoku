@@ -3,7 +3,7 @@
     <button v-for="button in buttons" @click="clicked(button.id)" :class="{helpmodeColor: button.help}" :style="{width: btnWidth}">
           {{ button.val }}
     </button>
-    <!--<div class="notice">{{ (helpmode ? 'Notizen' : 'Zahlen') }} einfügen</div>-->
+    <div class="notice">{{ (helpmode ? 'Notizen' : 'Zahlen') }} einfügen</div>
   </div>
 </template>
 
@@ -13,7 +13,7 @@ export default {
   data () {
     return {
       msg: 'Welcome to Your Vue.js App',
-      active: -1
+      active: -1,
     }
   },
   methods: {
@@ -43,14 +43,14 @@ export default {
         arr.push({id: i, val: this.btnStr(i), help: (this.helpmode ? 'helpmodeColor' : '')});
       }
 
-      //arr.push({id: 0, val: '⇄'});
+      arr.push({id: 0, val: '⇄'});
       arr.push({id: -1, val: '🗑'});
 
       return arr;
     },
     btnWidth: function() {
       var val = 1/this.xSize*90;
-      console.log(val);
+      //console.log(val);
       return val + "%";
     }
   }

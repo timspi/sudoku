@@ -3,7 +3,7 @@
     <h1>Einstellungen</h1>
     <div class="card">
       <h2>Sudokugröße</h2>
-      <img @click="cancel" src="static/cancel.svg">
+      <!--<img @click="cancel" src="static/cancel.svg">-->
       <button class="small minus" @click="minusSize" :disabled="xSize <= 2 ? true:false">-</button>
       <button class="small plus" @click="plusSize">+</button>
       <span>{{xSize}}x{{ySize}}</span><br>
@@ -27,6 +27,27 @@
       <span style="display: inline-block; text-transform: uppercase; font-family: sans">{{ stylePreview }}</span>
       <span v-if="styleErr" style="color: #F00">Stil enthält zu wenig Zeichen für gewählte Größe</span>
     </div>
+
+    <div class="card">
+      <h2>Optionen</h2>
+      <div class="check">
+        <input class="checkbox" type="checkbox" v-model="showMistakes" id="showMistakes">
+        <label for="showMistakes">Fehler direkt anzeigen</label>
+      </div>
+      <div class="check">
+        <input class="checkbox" type="checkbox" v-model="removeNotes" id="removeNotes">
+        <label for="removeNotes">Notizen automatisch löschen</label>
+      </div>
+      <div class="check">
+        <input class="checkbox" type="checkbox" v-model="highlightNumbers" id="highlightNumbers">
+        <label for="highlightNumbers">Gleiche Zahlen hervorheben</label>
+      </div>
+      <!--<div v-if="showMistakes || removeNotes || highlightNumbers">
+        <u>Achtung:</u><br>
+        Highscores werden bei aktivierten Zusatzoptionen nicht gespeichert
+      </div>-->
+    </div>
+
     <div v-if="size >= 36" class="card">
       <span class="warning">Achtung</span>
       <span>Die Berechnung kann mehrere Minuten dauern.</span>
@@ -35,7 +56,7 @@
     <br>
     <button class="" @click="createNew" :disabled="styleErr">Speichern</button>
     <button class="" @click="cancel">Abbrechen</button>
-    <br><br>
+    <br><br><br><br><br><br><br><br>
   </div>
 </template>
 
@@ -50,13 +71,19 @@ export default {
       style: 0,
       custom: "",
       emoji: "😀,😁,😂,😃,😄,😅,😆,😇,😈,😉,😊,😋,😌,😍,😎,😏,😐,😑,😒,😓,😔,😕,😖,😗,😘,😙,😚,😛,😜,😝,😞,😟,😠,😡,😢,😣,😤,😥,😦,😧,😨,😩,😪,😫,😬,😭,😮,😯,😰,😱,😲,😳,😴,😵,😶,😷,😸,😹,😺,😻,😼,😽,😾,😿,🙀,🙁,🙂,🙃,🙄,🙅,🙆,🙇,🙈,🙉,🙊,🙋,🙌,🙍,🙎,🙏",
-      percentages: [0,20,35,50,62,75]
+      percentages: [0,20,35,50,62,75],
+      showMistakes: false,
+      removeNotes: false,
+      highlightNumbers: false,
     }
   },
   methods: {
     createNew: function(id) {
       this.$emit('createNew', {
         save: true,
+        showMistakes: this.showMistakes,
+        removeNotes: this.removeNotes,
+        highlightNumbers: this.highlightNumbers,
         xSize: this.xSize,
         ySize: this.ySize,
         difficulty: this.percentages[this.difficulty],
@@ -121,6 +148,10 @@ export default {
     var sudoku = this.$localStorage.get("sudoku");
     var settings = this.$localStorage.get("settings");
 
+    this.showMistakes = settings.showMistakes;
+    this.removeNotes = settings.removeNotes;
+    this.highlightNumbers = settings.highlightNumbers;
+
     this.xSize = sudoku.xSize;
     this.ySize = sudoku.ySize;
 
@@ -160,7 +191,7 @@ export default {
 img {
   position: absolute;;
   top: 1.2em;
-  right: 2.8em;
+  right: 20px;
   width: 2em;
   height: 2em;
 }
@@ -179,10 +210,14 @@ button {
   text-align: center;
   text-decoration: none;
   cursor: pointer;
+  border-radius: 5px 5px 5px 5px;
+  box-shadow: 0px 1px 3px rgba(0,0,0,0.5);
 }
 
 button.small {
   width: 10%;
+  width: 35px;
+	height: 35px;
   margin-top: -8px;
 }
 
@@ -209,6 +244,29 @@ input:focus {
 	box-shadow: 0 0 3px 1px #DDD;
 }
 
+.check {
+  display: block;
+  text-align: left;
+  width: 100%;
+}
+.check label {
+  position: relative;
+  padding-left: 10px;
+  cursor: pointer;
+}
+.checkbox {
+  display: inline-block;
+  appearance: none;
+  vertical-align: middle;
+  margin-left: 20px;
+  width: 30px;
+	height: 30px;
+	background: #ddd;
+	box-shadow: 0px 1px 3px rgba(0,0,0,0.5);
+}
+.checkbox:checked {
+  background: #555;
+}
 
 .minus {
   float: left;
